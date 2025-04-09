@@ -1,0 +1,12 @@
+[submodule "Drivers/Components/ism330dhcx"]
+	path = Drivers/Components/ism330dhcx
+	url = https://github.com/STMicroelectronics/stm32-ism330dhcx.git
+[submodule "Drivers/Components/Common"]
+	path = Drivers/Components/Common
+	url = https://github.com/STMicroelectronics/stm32-bsp-common.git
+[submodule "Drivers/Components/b-u585i-iot02a-bsp"]
+	path = Drivers/Components/b-u585i-iot02a-bsp
+	url = https://github.com/STMicroelectronics/b-u585i-iot02a-bsp.git
+[submodule "Drivers/Components/iis2mdc"]
+	path = Drivers/Components/iis2mdc
+	url = https://github.com/STMicroelectronics/stm32-iis2mdc.git
