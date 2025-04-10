@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "b-u585i-iot02a-bsp/b_u585i_iot02a_motion_sensors.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -129,19 +131,53 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
 
+  int32_t status = BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO);
+
+  if (status != BSP_ERROR_NONE)
+  {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Init failed\n", 30, 1000);
+  } else {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Init succes\n", 30, 1000);
+  }
+
+  status = BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
+
+  if (status != BSP_ERROR_NONE)
+  {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Enable failed\n", 33, 1000);
+  } else {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Enable succes\n", 33, 1000);
+  }
+
+  status = BSP_MOTION_SENSOR_SetOutputDataRate(0, MOTION_ACCELERO, 200.0f);
+
+  if (status != BSP_ERROR_NONE)
+  {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_SetOutputDataRate failed\n", 45, 1000);
+  } else {
+    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_SetOutputDataRate succes\n", 45, 1000);
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);
+    BSP_MOTION_SENSOR_Axes_t axes = {0};
+    status = BSP_MOTION_SENSOR_GetAxes(0, MOTION_ACCELERO, &axes);
 
-	  HAL_GPIO_WritePin(GPIOH, LED_RED_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1000);
+    const char* str = "X: %d Y: %d Z: %d\n";
+    char msg[50];
+    sprintf(msg, str, axes.xval, axes.yval, axes.zval);
+    HAL_UART_Transmit(&huart1, (uint8_t*) msg, strlen(msg), 1000);
 
-	  HAL_GPIO_WritePin(GPIOH, LED_RED_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(1000);
+    /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
+
+    /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
+
+    HAL_GPIO_TogglePin(GPIOH, LED_RED_Pin);
+    HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
