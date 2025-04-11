@@ -583,7 +583,7 @@ STMicroelectronics.X-CUBE-AI.8.1.0.ModelMacc-74d1abd08df17456159e8aded3f4d922e4a
 STMicroelectronics.X-CUBE-AI.8.1.0.ModelName-74d1abd08df17456159e8aded3f4d922e4a0e63a235d5de9052eecfc0f412ebe=network
 STMicroelectronics.X-CUBE-AI.8.1.0.ModelNameList=network
 STMicroelectronics.X-CUBE-AI.8.1.0.ModelRamOccupation-74d1abd08df17456159e8aded3f4d922e4a0e63a235d5de9052eecfc0f412ebe=5024
-STMicroelectronics.X-CUBE-AI.8.1.0.ModelStructureFile-74d1abd08df17456159e8aded3f4d922e4a0e63a235d5de9052eecfc0f412ebe=NN_Models/best_model.h5
+STMicroelectronics.X-CUBE-AI.8.1.0.ModelStructureFile-74d1abd08df17456159e8aded3f4d922e4a0e63a235d5de9052eecfc0f412ebe=NN_Models/best_model_no_preprocess.h5
 STMicroelectronics.X-CUBE-AI.8.1.0.ModelType-74d1abd08df17456159e8aded3f4d922e4a0e63a235d5de9052eecfc0f412ebe=Saved model
 STMicroelectronics.X-CUBE-AI.8.1.0.ReadyForCodeGeneration=true
 STMicroelectronics.X-CUBE-AI.8.1.0.StackSize=0x800

@@ -1,35 +1,35 @@
 Neural Network Tools for STM32 family v1.7.0 (stm.ai v8.1.0-19520)
-Created date          : 2025-04-11 12:12:14
-Parameters            : generate --name network -m /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/best_model.h5 --type keras --compression none --verbosity 1 --workspace /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace13108826053402925335551524190103392 --output /Users/richardmatthews/.stm32cubemx/network_output --allocate-inputs --series stm32u5 --allocate-outputs
+Created date          : 2025-04-11 16:51:09
+Parameters            : generate --name network -m /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/best_model_no_preprocess.h5 --type keras --compression none --verbosity 1 --workspace /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace13276184933662093854552403615085589 --output /Users/richardmatthews/.stm32cubemx/network_output --allocate-inputs --series stm32u5 --allocate-outputs
 
 Exec/report summary (generate)
-----------------------------------------------------------------------------------------------------------------------------
-model file         :   /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/best_model.h5           
-type               :   keras                                                                                                
-c_name             :   network                                                                                              
-compression        :   none                                                                                                 
-options            :   allocate-inputs, allocate-outputs                                                                    
-optimization       :   balanced                                                                                             
-target/series      :   stm32u5                                                                                              
-workspace dir      :   /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace13108826053402925335551524190103392   
-output dir         :   /Users/richardmatthews/.stm32cubemx/network_output                                                   
-model_fmt          :   float                                                                                                
-model_name         :   best_model                                                                                           
-model_hash         :   9cc66c1354d99cfb3400ffe78433b565                                                                     
-params #           :   3,064 items (11.97 KiB)                                                                              
-----------------------------------------------------------------------------------------------------------------------------
-input 1/1          :   'input_1' (domain:activations/**default**)                                                           
-                   :   72 items, 288 B, ai_float, float, (1,24,3,1)                                                         
-output 1/1         :   'dense_1' (domain:activations/**default**)                                                           
-                   :   4 items, 16 B, ai_float, float, (1,4)                                                                
-macc               :   14,404                                                                                               
-weights (ro)       :   12,256 B (11.97 KiB) (1 segment)                                                                     
-activations (rw)   :   2,880 B (2.81 KiB) (1 segment) *                                                                     
-ram (total)        :   2,880 B (2.81 KiB) = 2,880 + 0 + 0                                                                   
-----------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------
+model file         :   /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/best_model_no_preprocess.h5   
+type               :   keras                                                                                                      
+c_name             :   network                                                                                                    
+compression        :   none                                                                                                       
+options            :   allocate-inputs, allocate-outputs                                                                          
+optimization       :   balanced                                                                                                   
+target/series      :   stm32u5                                                                                                    
+workspace dir      :   /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace13276184933662093854552403615085589         
+output dir         :   /Users/richardmatthews/.stm32cubemx/network_output                                                         
+model_fmt          :   float                                                                                                      
+model_name         :   best_model_no_preprocess                                                                                   
+model_hash         :   1fb6b3e58353071ede2dcdf8aa4fac9d                                                                           
+params #           :   3,064 items (11.97 KiB)                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------
+input 1/1          :   'input_1' (domain:activations/**default**)                                                                 
+                   :   72 items, 288 B, ai_float, float, (1,24,3,1)                                                               
+output 1/1         :   'dense_1' (domain:activations/**default**)                                                                 
+                   :   4 items, 16 B, ai_float, float, (1,4)                                                                      
+macc               :   14,404                                                                                                     
+weights (ro)       :   12,256 B (11.97 KiB) (1 segment)                                                                           
+activations (rw)   :   2,880 B (2.81 KiB) (1 segment) *                                                                           
+ram (total)        :   2,880 B (2.81 KiB) = 2,880 + 0 + 0                                                                         
+----------------------------------------------------------------------------------------------------------------------------------
 (*) 'input'/'output' buffers can be used from the activations buffer
 
-Model name - best_model ['input_1'] ['dense_1']
+Model name - best_model_no_preprocess ['input_1'] ['dense_1']
 ------ --------------------------------------- ---------------------------- -------------- -------- --------------- --- -------- -------------- ----------------------------- 
 m_id   layer (type,original)                   oshape                       param/size         macc    connected to   | c_size   c_macc         c_type                        
 ------ --------------------------------------- ---------------------------- -------------- -------- --------------- --- -------- -------------- ----------------------------- 
@@ -54,7 +54,7 @@ model/c-model: macc=14,404/14,404  weights=12,256/12,256  activations=--/2,880 i
 
 Generated C-graph summary
 ------------------------------------------------------------------------------------------------------------------------
-model name            : best_model
+model name            : best_model_no_preprocess
 c-name                : network
 c-node #              : 6
 c-array #             : 13
