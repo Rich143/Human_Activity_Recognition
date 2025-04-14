@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_motion_sensors.h"
+#include "imu_manager.h"
 #include <stdio.h>
 
 /* USER CODE END Includes */
@@ -137,31 +138,9 @@ int main(void)
   MX_X_CUBE_AI_Init();
   /* USER CODE BEGIN 2 */
 
-  int32_t status = BSP_MOTION_SENSOR_Init(0, MOTION_ACCELERO);
-
-  if (status != BSP_ERROR_NONE)
-  {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Init failed\n", 30, 1000);
-  } else {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Init succes\n", 30, 1000);
-  }
-
-  status = BSP_MOTION_SENSOR_Enable(0, MOTION_ACCELERO);
-
-  if (status != BSP_ERROR_NONE)
-  {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Enable failed\n", 33, 1000);
-  } else {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_Enable succes\n", 33, 1000);
-  }
-
-  status = BSP_MOTION_SENSOR_SetOutputDataRate(0, MOTION_ACCELERO, 200.0f);
-
-  if (status != BSP_ERROR_NONE)
-  {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_SetOutputDataRate failed\n", 45, 1000);
-  } else {
-    HAL_UART_Transmit(&huart1, (uint8_t*) "BSP_MOTION_SENSOR_SetOutputDataRate succes\n", 45, 1000);
+  int32_t status = imu_manager_init();
+  if (status != BSP_ERROR_NONE) {
+    HAL_UART_Transmit(&huart1, "Failed to init IMU\n", strlen("Failed to init IMU\n"), 1000);
   }
 
   /* USER CODE END 2 */
@@ -170,13 +149,22 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    BSP_MOTION_SENSOR_Axes_t axes = {0};
-    status = BSP_MOTION_SENSOR_GetAxes(0, MOTION_ACCELERO, &axes);
+    IMU_Window window;
 
-    const char* str = "X: %d Y: %d Z: %d\n";
-    char msg[50];
-    sprintf(msg, str, axes.xval, axes.yval, axes.zval);
-    HAL_UART_Transmit(&huart1, (uint8_t*) msg, strlen(msg), 1000);
+    int32_t status = imu_manager_read_window(&window);
+    if (status != BSP_ERROR_NONE) {
+      HAL_UART_Transmit(&huart1, "Failed to read window\n", strlen("Failed to read window\n"), 1000);
+    } else {
+      HAL_UART_Transmit(&huart1, "Window:\n", strlen("Window:\n"), 1000);
+
+      for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
+        BSP_MOTION_SENSOR_Axes_t *axes = &(window.window[i]);
+        const char* str = "X: %d Y: %d Z: %d\n";
+        char msg[50];
+        sprintf(msg, str, axes->xval, axes->yval, axes->zval);
+        HAL_UART_Transmit(&huart1, (uint8_t*) msg, strlen(msg), 1000);
+      }
+    }
 
     /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
 

@@ -30,7 +30,7 @@ int imu_manager_read_window(IMU_Window *window) {
   uint32_t sample_time = 0;
 
   for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
-    BSP_MOTION_SENSOR_Axes_t *axes = (BSP_MOTION_SENSOR_Axes_t *)&window[i];
+    BSP_MOTION_SENSOR_Axes_t *axes = &(window->window[i]);
 
     sample_time = HAL_GetTick();
 

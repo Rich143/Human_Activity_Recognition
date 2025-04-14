@@ -18,7 +18,9 @@
 //! IMU sampling frequency, this will correspond to 26 Hz for the ISM330DHCX
 #define IMU_SAMPLING_FREQUENCY_HZ 20.0f
 
-typedef BSP_MOTION_SENSOR_Axes_t IMU_Window[IMU_WINDOW_SIZE];
+typedef struct {
+BSP_MOTION_SENSOR_Axes_t window[IMU_WINDOW_SIZE];
+} IMU_Window;
 
 /**
  * @brief Initializes the IMU manager
@@ -36,6 +38,6 @@ int imu_manager_init(void);
  *
  * @return BSP status
  */
-int imu_manager_get_window(IMU_Window* window);
+int imu_manager_read_window(IMU_Window* window);
 
 #endif /* INC_IMU_MANAGER_H_ */
