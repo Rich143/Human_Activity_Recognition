@@ -138,9 +138,10 @@ int main(void)
   MX_X_CUBE_AI_Init();
   /* USER CODE BEGIN 2 */
 
+  printf("Initializing\n\n");
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
-    HAL_UART_Transmit(&huart1, "Failed to init IMU\n", strlen("Failed to init IMU\n"), 1000);
+    printf("Failed to init IMU\n");
   }
 
   /* USER CODE END 2 */
@@ -149,22 +150,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    IMU_Window window;
-
-    int32_t status = imu_manager_read_window(&window);
-    if (status != BSP_ERROR_NONE) {
-      HAL_UART_Transmit(&huart1, "Failed to read window\n", strlen("Failed to read window\n"), 1000);
-    } else {
-      HAL_UART_Transmit(&huart1, "Window:\n", strlen("Window:\n"), 1000);
-
-      for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
-        BSP_MOTION_SENSOR_Axes_t *axes = &(window.window[i]);
-        const char* str = "X: %d Y: %d Z: %d\n";
-        char msg[50];
-        sprintf(msg, str, axes->xval, axes->yval, axes->zval);
-        HAL_UART_Transmit(&huart1, (uint8_t*) msg, strlen(msg), 1000);
-      }
-    }
 
     /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
 
@@ -174,7 +159,8 @@ int main(void)
     HAL_Delay(100);
     /* USER CODE END WHILE */
 
-  /*MX_X_CUBE_AI_Process();*/
+    printf("AI process\n");
+    MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

@@ -58,6 +58,7 @@
 #include "network_data.h"
 
 /* USER CODE BEGIN includes */
+#include "imu_manager.h"
 /* USER CODE END includes */
 
 /* IO buffers ----------------------------------------------------------------*/
@@ -171,25 +172,44 @@ static int ai_run(void)
 /* USER CODE BEGIN 2 */
 int acquire_and_process_data(ai_i8* data[])
 {
-  /* fill the inputs of the c-model
-  for (int idx=0; idx < AI_NETWORK_IN_NUM; idx++ )
-  {
-      data[idx] = ....
-  }
+    printf("Acquiring window\n");
 
-  */
+    IMU_Window window;
+
+    int32_t status = imu_manager_read_window(&window);
+    if (status != BSP_ERROR_NONE) {
+      printf("Failed to read window\n");
+    } else {
+      printf("Window:\n");
+
+      for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
+        BSP_MOTION_SENSOR_Axes_t *axes = &(window.window[i]);
+        printf("X: %ld Y: %ld Z: %ld\n", axes->xval, axes->yval, axes->zval);
+      }
+    }
+
+    float (*data_array)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL] =
+      (float (*)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL])data[0];
+
+    printf("Copying window into buffer\n");
+    for (uint32_t i=0; i < IMU_WINDOW_SIZE; i++) {
+      /* Format for access is data[H][W][C==1] */
+      // TODO! verify that model expects data as x,y,z, not some other order
+      data_array[i][0][0] = window.window[i].xval;
+      data_array[i][1][0] = window.window[i].yval;
+      data_array[i][2][0] = window.window[i].zval;
+    }
+
   return 0;
 }
 
 int post_process(ai_i8* data[])
 {
-  /* process the predictions
-  for (int idx=0; idx < AI_NETWORK_OUT_NUM; idx++ )
-  {
-      data[idx] = ....
-  }
+  float *data_array = (float *)data[0];
 
-  */
+  printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],
+         data_array[2], data_array[3]);
+
   return 0;
 }
 /* USER CODE END 2 */
