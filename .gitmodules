@@ -10,3 +10,6 @@
 [submodule "Drivers/Components/iis2mdc"]
 	path = Drivers/Components/iis2mdc
 	url = https://github.com/STMicroelectronics/stm32-iis2mdc.git
+[submodule "Drivers/CMSIS-DSP"]
+	path = Drivers/CMSIS-DSP
+	url = https://github.com/ARM-software/CMSIS-DSP.git
