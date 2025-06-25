@@ -17,95 +17,108 @@
 void setUp(void) {}
 void tearDown(void) {}
 
-void test_u8_init_and_push(void) {
-    uint8_t buf_storage[4];
-    u8_t cb;
-    uint8_t val;
 
-    TEST_CB_OK(u8_init(&cb, buf_storage, 4));
-
-    u8_push(&cb, 10);
-    u8_push(&cb, 20);
-    u8_push(&cb, 30);
-    u8_push(&cb, 40);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 0, &val));
-    TEST_ASSERT_EQUAL_UINT8(40, val);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 1, &val));
-    TEST_ASSERT_EQUAL_UINT8(30, val);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 2, &val));
-    TEST_ASSERT_EQUAL_UINT8(20, val);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 3, &val));
-    TEST_ASSERT_EQUAL_UINT8(10, val);
-}
-
-
-void test_u8_init_error(void) {
-    u8_t cb;
-    uint8_t buf_storage[4];
-
-    TEST_CB_STATUS(u8_init(&cb, NULL, 4), cb_status_error_null);
-
-    TEST_CB_STATUS(u8_init(NULL, buf_storage, 4), cb_status_error_null);
-}
-
-void test_u8_wraparound_behavior(void) {
-    uint8_t buf_storage[3];
-    u8_t cb;
-    uint8_t val;
-
-    u8_init(&cb, buf_storage, 3);
-
-    u8_push(&cb, 1);
-    u8_push(&cb, 2);
-    u8_push(&cb, 3);
-    u8_push(&cb, 4);  // overwrites 1
-    u8_push(&cb, 5);  // overwrites 2
-
-    TEST_CB_OK(u8_get_delayed(&cb, 0, &val));
-    TEST_ASSERT_EQUAL_UINT8(5, val);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 1, &val));
-    TEST_ASSERT_EQUAL_UINT8(4, val);
-
-    TEST_CB_OK(u8_get_delayed(&cb, 2, &val));
-    TEST_ASSERT_EQUAL_UINT8(3, val);
-}
-
-void test_u8_delay_too_large(void) {
-    uint8_t buf_storage[3];
-    u8_t cb;
-    uint8_t val;
-
-    u8_init(&cb, buf_storage, 3);
-    u8_push(&cb, 1);
-    u8_push(&cb, 2);
-    u8_push(&cb, 3);
-
-    TEST_CB_STATUS(u8_get_delayed(&cb, 3, &val), cb_status_error_delay_too_large);
-    TEST_CB_STATUS(u8_get_delayed(&cb, 100, &val), cb_status_error_delay_too_large);
-    TEST_CB_STATUS(u8_get_delayed(&cb, 1, NULL), cb_status_error_null);
-}
-
-void test_f32_float_version(void) {
-    float buf[2];
-    f32_t cb;
+void test_f32_cb_init_and_push_single(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
     float val;
 
-    f32_init(&cb, buf, 2);
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
 
-    f32_push(&cb, 0.5f);
-    f32_push(&cb, 1.5f);
-    f32_push(&cb, 2.5f);
+    f32_cb_push(&cb, 10.1f);
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 0, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 10.1f, val);
+}
 
-    TEST_CB_OK(f32_get_delayed(&cb, 0, &val));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.5f, val);
+void test_f32_cb_init_and_push(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+    float val;
 
-    TEST_CB_OK(f32_get_delayed(&cb, 1, &val));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.5f, val);
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
 
-    TEST_CB_STATUS(f32_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
+    f32_cb_push(&cb, 10.1f);
+    f32_cb_push(&cb, 20.2f);
+    f32_cb_push(&cb, 30.3f);
+    f32_cb_push(&cb, 40.5f);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 0, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 40.5f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 1, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 30.3f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 2, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 20.2f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 3, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 10.1f, val);
+}
+
+
+void test_f32_cb_init_error(void) {
+    f32_cb_t cb;
+    float buf_storage[4];
+
+    TEST_CB_STATUS(f32_cb_init(&cb, NULL, 4), cb_status_error_null);
+
+    TEST_CB_STATUS(f32_cb_init(NULL, buf_storage, 4), cb_status_error_null);
+}
+
+void test_f32_cb_wraparound_behavior(void) {
+    float buf_storage[3];
+    f32_cb_t cb;
+    float val;
+
+    f32_cb_init(&cb, buf_storage, 3);
+
+    f32_cb_push(&cb, 1.0f);
+    f32_cb_push(&cb, 2.0f);
+    f32_cb_push(&cb, 3.0f);
+    f32_cb_push(&cb, 4.0f);  // overwrites 1
+    f32_cb_push(&cb, 5.0f);  // overwrites 2
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 0, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 5.0f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 1, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 4.0f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 2, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 3.0f, val);
+}
+
+void test_f32_cb_delay_too_large(void) {
+    float buf_storage[3];
+    f32_cb_t cb;
+    float val;
+
+    f32_cb_init(&cb, buf_storage, 3);
+    f32_cb_push(&cb, 1.0f);
+    f32_cb_push(&cb, 2.0f);
+    f32_cb_push(&cb, 3.0f);
+
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 3, &val), cb_status_error_delay_too_large);
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 100, &val), cb_status_error_delay_too_large);
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 1, NULL), cb_status_error_null);
+}
+
+void test_u8_cb_version(void) {
+    uint8_t buf[2];
+    u8_cb_t cb;
+    uint8_t val;
+
+    u8_cb_init(&cb, buf, 2);
+
+    u8_cb_push(&cb, 1);
+    u8_cb_push(&cb, 2);
+    u8_cb_push(&cb, 3);
+
+    TEST_CB_OK(u8_cb_get_delayed(&cb, 0, &val));
+    TEST_ASSERT_EQUAL_UINT8(3, val);
+
+    TEST_CB_OK(u8_cb_get_delayed(&cb, 1, &val));
+    TEST_ASSERT_EQUAL_UINT8(2, val);
+
+    TEST_CB_STATUS(u8_cb_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
 }
