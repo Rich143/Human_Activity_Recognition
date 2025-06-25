@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "circular_buffer_variants.h"
 
 // Helper macros for test status checking
 #define TEST_CB_OK(expr) \
@@ -12,20 +13,6 @@
         cb_status_t status = (expr); \
         TEST_ASSERT_EQUAL_INT_MESSAGE((expected), status, "Unexpected cb_status_t value"); \
     } while (0)
-
-// uint8_t variant
-#define CIRCULAR_BUFFER_TYPE uint8_t
-#define CIRCULAR_BUFFER_PREFIX u8
-#include "circular_buffer.h"
-#undef CIRCULAR_BUFFER_TYPE
-#undef CIRCULAR_BUFFER_PREFIX
-
-// float variant
-#define CIRCULAR_BUFFER_TYPE float
-#define CIRCULAR_BUFFER_PREFIX f32
-#include "circular_buffer.h"
-#undef CIRCULAR_BUFFER_TYPE
-#undef CIRCULAR_BUFFER_PREFIX
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -122,14 +109,3 @@ void test_f32_float_version(void) {
 
     TEST_CB_STATUS(f32_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
 }
-
-int main(void) {
-    UNITY_BEGIN();
-    RUN_TEST(test_u8_init_and_push);
-    RUN_TEST(test_u8_init_error);
-    RUN_TEST(test_u8_wraparound_behavior);
-    RUN_TEST(test_u8_delay_too_large);
-    RUN_TEST(test_f32_float_version);
-    return UNITY_END();
-}
-
