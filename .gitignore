@@ -123,3 +123,4 @@ tags
 # Build folders
 Debug/
 Release/
+build/

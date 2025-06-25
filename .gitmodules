@@ -13,3 +13,6 @@
 [submodule "Drivers/CMSIS-DSP"]
 	path = Drivers/CMSIS-DSP
 	url = https://github.com/ARM-software/CMSIS-DSP.git
+[submodule "Test/Unity"]
+	path = Test/Unity
+	url = https://github.com/ThrowTheSwitch/Unity.git
