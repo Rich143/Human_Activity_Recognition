@@ -54,9 +54,9 @@ static inline void CB_NAME(_push)(CB_NAME(_t) *cb, CIRCULAR_BUFFER_TYPE item) {
     cb->index = (cb->index + 1) % cb->capacity;
 }
 
-static inline cb_status_t CB_NAME(_get_delayed)(const CB_NAME(_t) *cb, uint16_t
-                                                delay, CIRCULAR_BUFFER_TYPE
-                                                *out) {
+static inline cb_status_t CB_NAME(_get_delayed)(const CB_NAME(_t) *cb,
+                                                uint16_t delay,
+                                                CIRCULAR_BUFFER_TYPE *out) {
     if (!out || !cb || !cb->buffer) return cb_status_error_null;
 
     if (delay >= cb->capacity) return cb_status_error_delay_too_large;

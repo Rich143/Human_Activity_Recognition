@@ -100,8 +100,10 @@
     - ../Test
   :source:
     - ../Core/Inc
+    - ../Core/Src
   :include:
     - ../Core/Inc
+    - ../Drivers/CMSIS-DSP/Include
   :support:
     - support
   :libraries: []
@@ -342,17 +344,17 @@
 # Ceedling defaults to using gcc for compiling, linking, etc.
 # As [:tools] is blank, gcc will be used (so long as it's in your system path)
 # See documentation to configure a given toolchain for use
-# :tools:
-#   :test_compiler: 
-#     :executable:
-#     :arguments: []
-#     :name: 
-#     :optional: FALSE
-#   :test_linker: 
-#     :executable:
-#     :arguments: []
-#     :name: 
-#     :optional: FALSE
+:tools:
+  :test_compiler:
+    :executable: clang
+    #:arguments: []
+  #:name: 
+  #:optional: FALSE
+  :test_linker:
+    :executable: clang
+  #:arguments: []
+  #:name: 
+  #:optional: FALSE
 #   :test_assembler: 
 #     :executable:
 #     :arguments: []
