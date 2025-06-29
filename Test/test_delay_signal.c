@@ -129,3 +129,130 @@ void test_delay_single_old_value(void) {
 
     check_signal(&delayed_signal, 0, x[0], y[0], z[0]);
 }
+
+void test_delay_multiple_values(void) {
+    const uint32_t BUF_SIZE = 2;
+
+    float x[BUF_SIZE] = {1.0f, 1.1f};
+    float y[BUF_SIZE] = {2.0f, 2.1f};
+    float z[BUF_SIZE] = {3.0f, 3.1f};
+
+    float x_out[BUF_SIZE] = {0};
+    float y_out[BUF_SIZE] = {0};
+    float z_out[BUF_SIZE] = {0};
+
+    AccelData input = {
+        .num_samples = BUF_SIZE,
+        .x = x,
+        .y = y,
+        .z = z
+    };
+
+    AccelData delayed_signal = {
+        .num_samples = 2,
+        .x = x_out,
+        .y = y_out,
+        .z = z_out
+    };
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+
+    TEST_DELAY_OK(delay_signal_push_signal(&delay_signal,
+                                           &input));
+
+
+    TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal,
+                                               &delayed_signal,
+                                               1, 2));
+
+    check_signal(&delayed_signal, 0, x[0], y[0], z[0]);
+    check_signal(&delayed_signal, 1, x[1], y[1], z[1]);
+}
+
+void test_delay_too_large(void) {
+    const uint32_t num_samples = DELAY_MAX_LEN;
+
+    float x[DELAY_MAX_LEN] = {0};
+    float y[DELAY_MAX_LEN] = {0};
+    float z[DELAY_MAX_LEN] = {0};
+
+    // Fill input with dummy values
+    for (uint32_t i = 0; i < DELAY_MAX_LEN; ++i) {
+        x[i] = 1.0f + i;
+        y[i] = 2.0f + i;
+        z[i] = 3.0f + i;
+    }
+
+    float x_out[DELAY_MAX_LEN] = {0};
+    float y_out[DELAY_MAX_LEN] = {0};
+    float z_out[DELAY_MAX_LEN] = {0};
+
+    AccelData input = {
+        .num_samples = num_samples,
+        .x = x,
+        .y = y,
+        .z = z
+    };
+
+    AccelData delayed_signal = {
+        .num_samples = 1,
+        .x = x_out,
+        .y = y_out,
+        .z = z_out
+    };
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+
+    // Push all input samples into the delay buffer
+    TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
+
+    // Request a delay equal to DELAY_MAX_LEN (out of bounds)
+    TEST_DELAY_STATUS(delay_signal_get_delay_range(&delay_signal,
+                                                   &delayed_signal,
+                                                   DELAY_MAX_LEN, 1),
+                      DELAY_STATUS_ERROR_DELAY_TOO_LARGE);
+}
+
+void test_delay_insufficient_history(void) {
+    const uint32_t num_samples_pushed = DELAY_MAX_LEN - 1;
+    const uint32_t delay_requested = DELAY_MAX_LEN - 1;
+
+    float x[DELAY_MAX_LEN] = {0};
+    float y[DELAY_MAX_LEN] = {0};
+    float z[DELAY_MAX_LEN] = {0};
+
+    for (uint32_t i = 0; i < num_samples_pushed; ++i) {
+        x[i] = 1.0f + i;
+        y[i] = 2.0f + i;
+        z[i] = 3.0f + i;
+    }
+
+    float x_out = 0.0f;
+    float y_out = 0.0f;
+    float z_out = 0.0f;
+
+    AccelData input = {
+        .num_samples = num_samples_pushed,
+        .x = x,
+        .y = y,
+        .z = z
+    };
+
+    AccelData delayed_signal = {
+        .num_samples = 1,
+        .x = &x_out,
+        .y = &y_out,
+        .z = &z_out
+    };
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+
+    TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
+
+    // Requesting a delay that is within DELAY_MAX_LEN but larger than actual samples pushed
+    TEST_DELAY_STATUS(delay_signal_get_delay_range(&delay_signal,
+                                                   &delayed_signal,
+                                                   delay_requested,
+                                                   1),
+                      DELAY_STATUS_ERROR_DELAY_TOO_LARGE);
+}

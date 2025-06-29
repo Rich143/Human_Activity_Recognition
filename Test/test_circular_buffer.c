@@ -122,3 +122,53 @@ void test_u8_cb_version(void) {
 
     TEST_CB_STATUS(u8_cb_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
 }
+
+void test_f32_cb_get_count(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
+    TEST_ASSERT_EQUAL_UINT32(0, f32_cb_get_count(&cb));  // empty
+
+    f32_cb_push(&cb, 1.0f);
+    TEST_ASSERT_EQUAL_UINT32(1, f32_cb_get_count(&cb));
+
+    f32_cb_push(&cb, 2.0f);
+    f32_cb_push(&cb, 3.0f);
+    TEST_ASSERT_EQUAL_UINT32(3, f32_cb_get_count(&cb));
+
+    f32_cb_push(&cb, 4.0f);
+    TEST_ASSERT_EQUAL_UINT32(4, f32_cb_get_count(&cb));  // full
+
+    f32_cb_push(&cb, 5.0f);  // overwrite oldest
+    TEST_ASSERT_EQUAL_UINT32(4, f32_cb_get_count(&cb));  // still full
+}
+
+void test_f32_cb_get_delayed_on_empty(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+    float val;
+
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 0, &val), cb_status_error_delay_too_large);
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 1, &val), cb_status_error_delay_too_large);
+}
+
+void test_f32_cb_get_delayed_partial_buffer(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+    float val;
+
+    f32_cb_init(&cb, buf_storage, 4);
+    f32_cb_push(&cb, 1.0f);
+    f32_cb_push(&cb, 2.0f);  // count = 2
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 0, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 2.0f, val);
+
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 1, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 1.0f, val);
+
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
+}
+

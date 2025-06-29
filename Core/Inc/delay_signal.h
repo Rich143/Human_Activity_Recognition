@@ -14,7 +14,7 @@
 #define CIRCULAR_BUFFER_PREFIX f32_cb
 #include "circular_buffer.h"
 
-#define DELAY_MAX_LEN 2
+#define DELAY_MAX_LEN 3
 
 typedef enum {
     DELAY_STATUS_OK = 0,
@@ -39,8 +39,8 @@ delay_status_t delay_signal_init(delay_signal_t *delay_signal);
 delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, AccelData *signal);
 
 delay_status_t delay_signal_get_delay_range(delay_signal_t *delay_signal,
-                                        AccelData *signal,
-                                        uint32_t delay_amount,
-                                        uint32_t len);
+                                            AccelData *signal,
+                                            uint32_t delay_amount,
+                                            uint32_t len);
 
 #endif

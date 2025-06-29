@@ -57,10 +57,23 @@ delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, AccelData 
         return DELAY_STATUS_ERROR_NULL;
     }
 
+    delay_status_t status;
+
     for (int i = 0; i < signal->num_samples; i++) {
-      f32_cb_push(&delay_signal->x_cb, signal->x[i]);
-      f32_cb_push(&delay_signal->y_cb, signal->y[i]);
-      f32_cb_push(&delay_signal->z_cb, signal->z[i]);
+        cb_status_t rc = f32_cb_push(&delay_signal->x_cb, signal->x[i]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
+
+        rc = f32_cb_push(&delay_signal->y_cb, signal->y[i]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
+
+        rc = f32_cb_push(&delay_signal->z_cb, signal->z[i]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
     }
 
     return DELAY_STATUS_OK;
@@ -76,19 +89,31 @@ delay_status_t delay_signal_get_delay_range(delay_signal_t *delay_signal,
 
     delay_status_t status;
 
-    cb_status_t rc = f32_cb_get_delayed(&delay_signal->x_cb, delay_amount, &signal->x[0]);
-    if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
-        return status;
+    uint32_t delayed_values = f32_cb_get_count(&delay_signal->x_cb);
+
+    if (delay_amount >= delayed_values) {
+        return DELAY_STATUS_ERROR_DELAY_TOO_LARGE;
     }
 
-    rc = f32_cb_get_delayed(&delay_signal->y_cb, delay_amount, &signal->y[0]);
-    if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
-        return status;
-    }
+    int min_delay_amount = delay_amount - len + 1;
 
-    rc = f32_cb_get_delayed(&delay_signal->z_cb, delay_amount, &signal->z[0]);
-    if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
-        return status;
+    for (int32_t delay = delay_amount; delay >= min_delay_amount; delay--) {
+        uint32_t idx = delay_amount - delay;
+
+        cb_status_t rc = f32_cb_get_delayed(&delay_signal->x_cb, delay, &signal->x[idx]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
+
+        rc = f32_cb_get_delayed(&delay_signal->y_cb, delay, &signal->y[idx]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
+
+        rc = f32_cb_get_delayed(&delay_signal->z_cb, delay, &signal->z[idx]);
+        if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
+            return status;
+        }
     }
 
     return DELAY_STATUS_OK;
