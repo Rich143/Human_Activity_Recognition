@@ -1,3 +1,4 @@
+
 #include "preprocess.h"
 #include "unity.h"
 #include "delay_signal.h"
@@ -28,7 +29,18 @@ void test_delay_init_fail(void) {
     TEST_DELAY_STATUS(delay_signal_init(NULL), DELAY_STATUS_ERROR_NULL);
 }
 
-void check_signal(AccelData *signal, uint32_t index, float x, float y, float z) {
+void check_signal(const AccelData *actual, const AccelData *expected) {
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected->num_samples, actual->num_samples,
+                                     "Sample count mismatch");
+
+    for (uint32_t i = 0; i < expected->num_samples; ++i) {
+        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->x[i], actual->x[i]);
+        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->y[i], actual->y[i]);
+        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->z[i], actual->z[i]);
+    }
+}
+
+void check_signal_single_value(AccelData *signal, uint32_t index, float x, float y, float z) {
     TEST_ASSERT_FLOAT_WITHIN(0.001, x, signal->x[index]);
     TEST_ASSERT_FLOAT_WITHIN(0.001, y, signal->y[index]);
     TEST_ASSERT_FLOAT_WITHIN(0.001, z, signal->z[index]);
@@ -89,7 +101,7 @@ void test_delay_single_value(void) {
                                                &delayed_signal,
                                                0, 1));
 
-    check_signal(&delayed_signal, 0, x, y, z);
+    check_signal_single_value(&delayed_signal, 0, x, y, z);
 }
 
 void test_delay_single_old_value(void) {
@@ -127,7 +139,7 @@ void test_delay_single_old_value(void) {
                                                &delayed_signal,
                                                1, 1));
 
-    check_signal(&delayed_signal, 0, x[0], y[0], z[0]);
+    check_signal_single_value(&delayed_signal, 0, x[0], y[0], z[0]);
 }
 
 void test_delay_multiple_values(void) {
@@ -165,8 +177,7 @@ void test_delay_multiple_values(void) {
                                                &delayed_signal,
                                                1, 2));
 
-    check_signal(&delayed_signal, 0, x[0], y[0], z[0]);
-    check_signal(&delayed_signal, 1, x[1], y[1], z[1]);
+    check_signal(&delayed_signal, &input);
 }
 
 void test_delay_too_large(void) {
@@ -287,9 +298,7 @@ void test_delay_full_length_max_delay(void) {
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
     TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &full_out, MAX - 1, MAX));
 
-    for (uint32_t i = 0; i < MAX; ++i) {
-        check_signal(&full_out, i, x[i], y[i], z[i]);
-    }
+    check_signal(&full_out, &input);
 }
 
 void test_delay_partial_window(void) {
@@ -298,7 +307,7 @@ void test_delay_partial_window(void) {
     const uint32_t len = delay * 5 / 6;
 
     float x[MAX], y[MAX], z[MAX];
-    float x_out[len], y_out[len], z_out[len];
+    float x_out[len] = {0}, y_out[len] = {0}, z_out[len] = {0};
 
     for (uint32_t i = 0; i < MAX; ++i) {
         x[i] = 1.0f + i;
@@ -320,12 +329,18 @@ void test_delay_partial_window(void) {
         .z = z_out
     };
 
+    const uint32_t expected_start_index = MAX - delay - 1;
+    AccelData expected_output = {
+        .num_samples = len,
+        .x = &x[expected_start_index],
+        .y = &y[expected_start_index],
+        .z = &z[expected_start_index]
+    };
+
     TEST_DELAY_OK(delay_signal_init(&delay_signal));
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
     TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &partial_out, delay, len));
 
-    for (uint32_t i = 0; i < len; ++i) {
-        uint32_t expected_index = MAX - delay - len + i;
-        check_signal(&partial_out, i, x[expected_index], y[expected_index], z[expected_index]);
-    }
+
+    check_signal(&partial_out, &expected_output);
 }
