@@ -14,7 +14,7 @@
 #define CIRCULAR_BUFFER_PREFIX f32_cb
 #include "circular_buffer.h"
 
-#define DELAY_MAX_LEN 3
+#define DELAY_MAX_LEN 270
 
 typedef enum {
     DELAY_STATUS_OK = 0,

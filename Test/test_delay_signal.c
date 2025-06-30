@@ -256,3 +256,76 @@ void test_delay_insufficient_history(void) {
                                                    1),
                       DELAY_STATUS_ERROR_DELAY_TOO_LARGE);
 }
+
+void test_delay_full_length_max_delay(void) {
+    const uint32_t MAX = DELAY_MAX_LEN;
+
+    float x[MAX], y[MAX], z[MAX];
+    float x_out[MAX], y_out[MAX], z_out[MAX];
+
+    for (uint32_t i = 0; i < MAX; ++i) {
+        x[i] = 1.0f + i;
+        y[i] = 2.0f + i;
+        z[i] = 3.0f + i;
+    }
+
+    AccelData input = {
+        .num_samples = MAX,
+        .x = x,
+        .y = y,
+        .z = z
+    };
+
+    AccelData full_out = {
+        .num_samples = MAX,
+        .x = x_out,
+        .y = y_out,
+        .z = z_out
+    };
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+    TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
+    TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &full_out, MAX - 1, MAX));
+
+    for (uint32_t i = 0; i < MAX; ++i) {
+        check_signal(&full_out, i, x[i], y[i], z[i]);
+    }
+}
+
+void test_delay_partial_window(void) {
+    const uint32_t MAX = DELAY_MAX_LEN;
+    const uint32_t delay = MAX * 4 / 5;
+    const uint32_t len = delay * 5 / 6;
+
+    float x[MAX], y[MAX], z[MAX];
+    float x_out[len], y_out[len], z_out[len];
+
+    for (uint32_t i = 0; i < MAX; ++i) {
+        x[i] = 1.0f + i;
+        y[i] = 2.0f + i;
+        z[i] = 3.0f + i;
+    }
+
+    AccelData input = {
+        .num_samples = MAX,
+        .x = x,
+        .y = y,
+        .z = z
+    };
+
+    AccelData partial_out = {
+        .num_samples = len,
+        .x = x_out,
+        .y = y_out,
+        .z = z_out
+    };
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+    TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
+    TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &partial_out, delay, len));
+
+    for (uint32_t i = 0; i < len; ++i) {
+        uint32_t expected_index = MAX - delay - len + i;
+        check_signal(&partial_out, i, x[expected_index], y[expected_index], z[expected_index]);
+    }
+}
