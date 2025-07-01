@@ -101,6 +101,7 @@
   :source:
     - ../Core/Inc
     - ../Core/Src
+    - ../Drivers/CMSIS-DSP/Source/FilteringFunctions/
   :include:
     - ../Core/Inc
     - ../Drivers/CMSIS-DSP/Include

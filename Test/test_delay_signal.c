@@ -1,7 +1,7 @@
-
 #include "preprocess.h"
 #include "unity.h"
 #include "delay_signal.h"
+#include "test_helpers.h"
 
 // Helper macros for test status checking
 #define TEST_DELAY_OK(expr) \
@@ -27,17 +27,6 @@ void test_delay_init(void) {
 
 void test_delay_init_fail(void) {
     TEST_DELAY_STATUS(delay_signal_init(NULL), DELAY_STATUS_ERROR_NULL);
-}
-
-void check_signal(const AccelData *actual, const AccelData *expected) {
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected->num_samples, actual->num_samples,
-                                     "Sample count mismatch");
-
-    for (uint32_t i = 0; i < expected->num_samples; ++i) {
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->x[i], actual->x[i]);
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->y[i], actual->y[i]);
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->z[i], actual->z[i]);
-    }
 }
 
 void check_signal_single_value(AccelData *signal, uint32_t index, float x, float y, float z) {
