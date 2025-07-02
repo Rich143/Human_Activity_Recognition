@@ -1,13 +1,9 @@
 #include "filter.h"
 
 #include "arm_math.h"
+#include <stdbool.h>
 
-#define NUM_SECTIONS 3
-static float32_t biquad_state_x[2 * NUM_SECTIONS] = {0};
-static float32_t biquad_state_y[2 * NUM_SECTIONS] = {0};
-static float32_t biquad_state_z[2 * NUM_SECTIONS] = {0};
-
-float32_t biquad_coeffs[] = {
+const float32_t biquad_coeffs[] = {
     2.74708283177703535e-04f,     5.49416566355407070e-04f,
     2.74708283177703535e-04f,     1.96891130024857519e+00f,
     -9.69169987583545445e-01f,     3.16227766016837953e-05f,
@@ -18,19 +14,53 @@ float32_t biquad_coeffs[] = {
     -9.91644838686520758e-01f
 };
 
-filter_status_t filter_signal(AccelData *data, AccelData *output) {
-    arm_biquad_cascade_df2T_instance_f32 filter_x;
-    arm_biquad_cascade_df2T_init_f32(&filter_x, NUM_SECTIONS, biquad_coeffs, biquad_state_x);
+/**
+ * Initialize the filter
+ *
+ * This resets the filter state
+ *
+ * @param filter Pointer to filter state struct
+ *
+ * @return status
+ */
+filter_status_t filter_init(filter_t *filter) {
+    if (filter == NULL) {
+        return FILTER_STATUS_ERROR_NULL;
+    }
 
-    arm_biquad_cascade_df2T_instance_f32 filter_y;
-    arm_biquad_cascade_df2T_init_f32(&filter_y, NUM_SECTIONS, biquad_coeffs, biquad_state_y);
+    arm_biquad_cascade_df2T_init_f32(&filter->filter_x,
+                                     FILTER_NUM_SECTIONS,
+                                     biquad_coeffs,
+                                     filter->biquad_state_x);
 
-    arm_biquad_cascade_df2T_instance_f32 filter_z;
-    arm_biquad_cascade_df2T_init_f32(&filter_z, NUM_SECTIONS, biquad_coeffs, biquad_state_z);
+    arm_biquad_cascade_df2T_init_f32(&filter->filter_y,
+                                     FILTER_NUM_SECTIONS,
+                                     biquad_coeffs,
+                                     filter->biquad_state_y);
 
-    arm_biquad_cascade_df2T_f32(&filter_x, data->x, output->x, data->num_samples);
-    arm_biquad_cascade_df2T_f32(&filter_y, data->y, output->y, data->num_samples);
-    arm_biquad_cascade_df2T_f32(&filter_z, data->z, output->z, data->num_samples);
+    arm_biquad_cascade_df2T_init_f32(&filter->filter_z,
+                                     FILTER_NUM_SECTIONS,
+                                     biquad_coeffs,
+                                     filter->biquad_state_z);
+
+    return FILTER_STATUS_OK;
+}
+
+filter_status_t filter_signal(filter_t *filter, AccelData *data,
+                              AccelData *output)
+{
+    if (filter == NULL || data == NULL || output == NULL) {
+        return FILTER_STATUS_ERROR_NULL;
+    }
+
+    arm_biquad_cascade_df2T_f32(&filter->filter_x, data->x,
+                                output->x, data->num_samples);
+
+    arm_biquad_cascade_df2T_f32(&filter->filter_y, data->y,
+                                output->y, data->num_samples);
+
+    arm_biquad_cascade_df2T_f32(&filter->filter_z, data->z,
+                                output->z, data->num_samples);
 
     return FILTER_STATUS_OK;
 }
