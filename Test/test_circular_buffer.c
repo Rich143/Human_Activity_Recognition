@@ -172,3 +172,37 @@ void test_f32_cb_get_delayed_partial_buffer(void) {
     TEST_CB_STATUS(f32_cb_get_delayed(&cb, 2, &val), cb_status_error_delay_too_large);
 }
 
+void test_f32_cb_delay_equal_to_capacity_should_fail(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+    float val;
+
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
+
+    // Fill the buffer to its full capacity
+    f32_cb_push(&cb, 1.0f);
+    f32_cb_push(&cb, 2.0f);
+    f32_cb_push(&cb, 3.0f);
+    f32_cb_push(&cb, 4.0f);  // Now cb.count == 4
+
+    // Attempting to access delay equal to capacity (i.e., 4) should fail
+    TEST_CB_STATUS(f32_cb_get_delayed(&cb, 4, &val), cb_status_error_delay_too_large);
+}
+
+void test_f32_cb_delay_max_valid_when_full(void) {
+    float buf_storage[4];
+    f32_cb_t cb;
+    float val;
+
+    TEST_CB_OK(f32_cb_init(&cb, buf_storage, 4));
+
+    // Fill the buffer with known values
+    f32_cb_push(&cb, 1.0f); // oldest
+    f32_cb_push(&cb, 2.0f);
+    f32_cb_push(&cb, 3.0f);
+    f32_cb_push(&cb, 4.0f); // newest
+
+    // Request delay == count - 1 == 3
+    TEST_CB_OK(f32_cb_get_delayed(&cb, 3, &val));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 1.0f, val);  // Should return the oldest value
+}

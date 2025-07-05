@@ -46,8 +46,8 @@ filter_status_t filter_init(filter_t *filter) {
     return FILTER_STATUS_OK;
 }
 
-filter_status_t filter_signal(filter_t *filter, AccelData *data,
-                              AccelData *output)
+filter_status_t filter_signal(filter_t *filter, const accel_data_t *data,
+                              accel_data_t *output)
 {
     if (filter == NULL || data == NULL || output == NULL) {
         return FILTER_STATUS_ERROR_NULL;

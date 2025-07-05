@@ -8,9 +8,13 @@
 #ifndef FILTER_SIGNALS_H
 #define FILTER_SIGNALS_H
 
-#include "preprocess.h"
+#include "accel_data_type.h"
+#include "arm_math.h"
 
 #define FILTER_NUM_SECTIONS 3
+
+// Hardcoded group delay calculated in python
+#define FILTER_MEAN_GROUP_DELAY 270
 
 typedef enum {
     FILTER_STATUS_OK = 0,
@@ -29,6 +33,6 @@ typedef struct {
 } filter_t;
 
 filter_status_t filter_init(filter_t *filter);
-filter_status_t filter_signal(filter_t *filter, AccelData *data, AccelData *output);
+filter_status_t filter_signal(filter_t *filter, const accel_data_t *data, accel_data_t *output);
 
 #endif

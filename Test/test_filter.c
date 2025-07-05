@@ -1,3 +1,4 @@
+#include "accel_data_type.h"
 #include "support/test_helpers.h"
 #include "unity.h"
 #include "filter.h"
@@ -31,17 +32,6 @@ TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_casc
 
 static filter_t filter;
 
-void check_signal_close(const AccelData *actual, const AccelData *expected, float32_t tolerance) {
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected->num_samples, actual->num_samples,
-                                     "Sample count mismatch");
-
-    for (uint32_t i = 0; i < expected->num_samples; ++i) {
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->x[i], actual->x[i]);
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->y[i], actual->y[i]);
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, expected->z[i], actual->z[i]);
-    }
-}
-
 void setUp(void) {
     TEST_FILTER_OK(filter_init(&filter));
 }
@@ -54,7 +44,7 @@ void test_dc_signal(void) {
     float y[N] = {0};
     float z[N] = {0};
 
-    AccelData signal = {
+    accel_data_t signal = {
         .num_samples = N,
         .x = x,
         .y = y,
@@ -71,7 +61,7 @@ void test_dc_signal(void) {
         z_out[i] = FLT_MAX;
     }
 
-    AccelData out = {
+    accel_data_t out = {
         .num_samples = N,
         .x = x_out,
         .y = y_out,
@@ -117,21 +107,21 @@ void test_filtered_signal_match(void) {
         z_out[i] = FLT_MAX;
     }
 
-    AccelData input = {
+    accel_data_t input = {
         .num_samples = N,
         .x = x,
         .y = y,
         .z = z
     };
 
-    AccelData output = {
+    accel_data_t output = {
         .num_samples = N,
         .x = x_out,
         .y = y_out,
         .z = z_out
     };
 
-    AccelData expected_output = {
+    accel_data_t expected_output = {
         .num_samples = N,
         .x = x_expected,
         .y = y_expected,
@@ -213,14 +203,14 @@ void test_filtered_signal_match_batched(void) {
     for (uint32_t start = 0; start < N; start += BATCH_SIZE) {
         uint32_t batch_len = (start + BATCH_SIZE <= N) ? BATCH_SIZE : (N - start);
 
-        AccelData input_batch = {
+        accel_data_t input_batch = {
             .num_samples = batch_len,
             .x = &x[start],
             .y = &y[start],
             .z = &z[start]
         };
 
-        AccelData output_batch = {
+        accel_data_t output_batch = {
             .num_samples = batch_len,
             .x = &x_out[start],
             .y = &y_out[start],
@@ -230,14 +220,14 @@ void test_filtered_signal_match_batched(void) {
         TEST_FILTER_OK(filter_signal(&filter, &input_batch, &output_batch));
     }
 
-    AccelData actual_output = {
+    accel_data_t actual_output = {
         .num_samples = N,
         .x = x_out,
         .y = y_out,
         .z = z_out
     };
 
-    AccelData expected = {
+    accel_data_t expected = {
         .num_samples = N,
         .x = x_expected,
         .y = y_expected,

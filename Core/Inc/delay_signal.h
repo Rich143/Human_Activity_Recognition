@@ -8,13 +8,16 @@
 #ifndef DELAY_SIGNAL_H
 #define DELAY_SIGNAL_H
 
-#include "preprocess.h"
+#include "accel_data_type.h"
+#include "filter.h"
 
 #define CIRCULAR_BUFFER_TYPE float
 #define CIRCULAR_BUFFER_PREFIX f32_cb
 #include "circular_buffer.h"
 
-#define DELAY_MAX_LEN 270
+// Need to be able to delay by group delay for preprocessing
+#define DELAY_BUFFER_SIZE FILTER_MEAN_GROUP_DELAY + 1
+#define DELAY_MAX_ALLOWED_DELAY (DELAY_BUFFER_SIZE - 1)
 
 typedef enum {
     DELAY_STATUS_OK = 0,
@@ -25,9 +28,9 @@ typedef enum {
 } delay_status_t;
 
 typedef struct {
-    float x_buf[DELAY_MAX_LEN];
-    float y_buf[DELAY_MAX_LEN];
-    float z_buf[DELAY_MAX_LEN];
+    float x_buf[DELAY_BUFFER_SIZE];
+    float y_buf[DELAY_BUFFER_SIZE];
+    float z_buf[DELAY_BUFFER_SIZE];
 
     f32_cb_t x_cb;
     f32_cb_t y_cb;
@@ -36,10 +39,10 @@ typedef struct {
 
 delay_status_t delay_signal_init(delay_signal_t *delay_signal);
 
-delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, AccelData *signal);
+delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, const accel_data_t *signal);
 
 delay_status_t delay_signal_get_delay_range(delay_signal_t *delay_signal,
-                                            AccelData *signal,
+                                            accel_data_t *signal,
                                             uint32_t delay_amount,
                                             uint32_t len);
 

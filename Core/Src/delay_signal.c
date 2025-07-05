@@ -32,19 +32,19 @@ delay_status_t delay_signal_init(delay_signal_t *delay_signal) {
 
     cb_status_t rc = f32_cb_init(&delay_signal->x_cb,
                                  delay_signal->x_buf,
-                                 DELAY_MAX_LEN);
+                                 DELAY_BUFFER_SIZE);
     if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
         return status;
     }
 
     rc = f32_cb_init(&delay_signal->y_cb, delay_signal->y_buf,
-                     DELAY_MAX_LEN);
+                     DELAY_BUFFER_SIZE);
     if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
         return status;
     }
 
     rc = f32_cb_init(&delay_signal->z_cb, delay_signal->z_buf,
-                     DELAY_MAX_LEN);
+                     DELAY_BUFFER_SIZE);
     if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
         return status;
     }
@@ -52,7 +52,9 @@ delay_status_t delay_signal_init(delay_signal_t *delay_signal) {
     return DELAY_STATUS_OK;
 }
 
-delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, AccelData *signal) {
+delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, const
+                                        accel_data_t *signal)
+{
     if (!delay_signal || !signal) {
         return DELAY_STATUS_ERROR_NULL;
     }
@@ -80,7 +82,7 @@ delay_status_t delay_signal_push_signal(delay_signal_t *delay_signal, AccelData 
 }
 
 delay_status_t delay_signal_get_delay_range(delay_signal_t *delay_signal,
-                                            AccelData *signal,
+                                            accel_data_t *signal,
                                             uint32_t delay_amount,
                                             uint32_t len) {
     if (!delay_signal || !signal) {
@@ -89,17 +91,15 @@ delay_status_t delay_signal_get_delay_range(delay_signal_t *delay_signal,
 
     delay_status_t status;
 
-    uint32_t delayed_values = f32_cb_get_count(&delay_signal->x_cb);
-
-    if (delay_amount >= delayed_values) {
-        return DELAY_STATUS_ERROR_DELAY_TOO_LARGE;
-    }
+    uint32_t num_saved_samples = f32_cb_get_count(&delay_signal->x_cb);
 
     int min_delay_amount = delay_amount - len + 1;
 
     for (int32_t delay = delay_amount; delay >= min_delay_amount; delay--) {
         uint32_t idx = delay_amount - delay;
 
+        // NB: This is expected to error if we request too large of a delay,
+        // we will then return the error to the caller
         cb_status_t rc = f32_cb_get_delayed(&delay_signal->x_cb, delay, &signal->x[idx]);
         if ((status = check_cb_error(rc)) != DELAY_STATUS_OK) {
             return status;
