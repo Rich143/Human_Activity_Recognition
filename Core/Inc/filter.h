@@ -13,8 +13,12 @@
 
 #define FILTER_NUM_SECTIONS 3
 
-// Hardcoded group delay calculated in python
+// Hardcoded group delay calculated in python, in samples
 #define FILTER_MEAN_GROUP_DELAY 270
+
+// Settling time calculated in python, in samples
+#define FILTER_SETTLING_TIME_5_PERCENT 717
+#define FILTER_SETTLING_TIME_1_PERCENT 1195
 
 typedef enum {
     FILTER_STATUS_OK = 0,
