@@ -150,21 +150,20 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
         if (sqrt_for_sin != 0) {
             v_x = -grav_y / sin_theta;
             v_y = grav_x / sin_theta;
-            v_factor = (v_x * dyn_x + v_y * dyn_y) * (1 - cos_theta);
-
-            /*
-             * Rodrigues' formula for rotations (a is the dynamic acceleration dyn)
-             * a' = a * cos + (v x a) * sin + v * (v . a) * (1 - cos)
-             */
-            output->x[i] = dyn_x * cos_theta + v_y * dyn_z * sin_theta + v_x * v_factor;
-            output->y[i] = dyn_y * cos_theta - v_x * dyn_z * sin_theta + v_y * v_factor;
-            output->z[i] = dyn_z * cos_theta + (v_x * dyn_y - v_y * dyn_x) * sin_theta;
         } else {
-            // Gravity already pointing down, no rotation needed
-            output->x[i] = dyn_x;
-            output->y[i] = dyn_y;
-            output->z[i] = dyn_z;
+            v_x = 0;
+            v_y = 0;
         }
+
+        v_factor = (v_x * dyn_x + v_y * dyn_y) * (1 - cos_theta);
+
+        /*
+         * Rodrigues' formula for rotations (a is the dynamic acceleration dyn)
+         * a' = a * cos + (v x a) * sin + v * (v . a) * (1 - cos)
+         */
+        output->x[i] = dyn_x * cos_theta + v_y * dyn_z * sin_theta + v_x * v_factor;
+        output->y[i] = dyn_y * cos_theta - v_x * dyn_z * sin_theta + v_y * v_factor;
+        output->z[i] = dyn_z * cos_theta + (v_x * dyn_y - v_y * dyn_x) * sin_theta;
     }
 
     return PREPROCESS_STATUS_OK;

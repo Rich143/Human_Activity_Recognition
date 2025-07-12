@@ -4,6 +4,9 @@
 #include "support/walking_gravity_down_input.h"
 #include "support/walking_gravity_down_output.h"
 
+#include "support/walking_gravity_up_input.h"
+#include "support/walking_gravity_up_output.h"
+
 #include "accel_data_type.h"
 #include "preprocess.h"
 #include "filter.h"
@@ -18,8 +21,8 @@
 TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_cascade_df2T_f32.c")
 TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_cascade_df2T_init_f32.c")
 
-#define DEBUG_DUMP_GRAVITY_OUTPUT 1
-#if DEBUG_DUMP_GRAVITY_OUTPUT
+#define DEBUG_DUMP_PREPROCESS_OUTPUT 1
+#if DEBUG_DUMP_PREPROCESS_OUTPUT
 #include <stdio.h>
 #endif
 
@@ -75,8 +78,8 @@ accel_data_t *get_scratch_buffer(uint32_t num_samples) {
 }
 
 
-test_signal_t *get_test_signals(float32_t *x_in, float32_t *y_in, float32_t *z_in,
-                                float32_t *x_expected, float32_t *y_expected, float32_t *z_expected,
+test_signal_t *get_test_signals(const float32_t *x_in, const float32_t *y_in, const float32_t *z_in,
+                                const float32_t *x_expected, const float32_t *y_expected, const float32_t *z_expected,
                                 uint32_t num_samples)
 {
     const uint32_t N = num_samples;
@@ -119,7 +122,7 @@ test_signal_t *get_test_signals(float32_t *x_in, float32_t *y_in, float32_t *z_i
     return &test_signals;
 }
 
-batch_signal_t *get_batch_signals(accel_data_t *in, accel_data_t *out, uint32_t start, uint32_t batch_size) {
+batch_signal_t *get_batch_signals(const accel_data_t *in, accel_data_t *out, uint32_t start, uint32_t batch_size) {
     static accel_data_t input_batch;
 
     input_batch.num_samples = batch_size;
@@ -140,7 +143,7 @@ batch_signal_t *get_batch_signals(accel_data_t *in, accel_data_t *out, uint32_t 
     return &batch_signals;
 }
 
-valid_output_t *get_valid_outputs(accel_data_t *output, accel_data_t *expected_output,
+valid_output_t *get_valid_outputs(const accel_data_t *output, const accel_data_t *expected_output,
                                   uint32_t valid_start, uint32_t N)
 {
     static accel_data_t out_valid;
@@ -225,100 +228,154 @@ void test_dc_signal_gravity_down(void) {
                                                       valid_start,
                                                       N);
 
-#if DEBUG_DUMP_GRAVITY_OUTPUT
-/*
- *    FILE *f = fopen("gravity_output.py", "w");
- *    if (f) {
- *        fprintf(f, "gravity_x = [\n");
- *        for (uint32_t i = 0; i < out_valid.num_samples; ++i) {
- *            fprintf(f, "    %.7g%s", out_valid.x[i], (i < out_valid.num_samples - 1) ? "," : "");
- *            if ((i + 1) % 8 == 0 || i == out_valid.num_samples - 1) fprintf(f, "\n");
- *        }
- *
- *        fprintf(f, "]\n\ngravity_y = [\n");
- *        for (uint32_t i = 0; i < out_valid.num_samples; ++i) {
- *            fprintf(f, "    %.7g%s", out_valid.y[i], (i < out_valid.num_samples - 1) ? "," : "");
- *            if ((i + 1) % 8 == 0 || i == out_valid.num_samples - 1) fprintf(f, "\n");
- *        }
- *
- *        fprintf(f, "]\n\ngravity_z = [\n");
- *        for (uint32_t i = 0; i < out_valid.num_samples; ++i) {
- *            fprintf(f, "    %.7g%s", out_valid.z[i], (i < out_valid.num_samples - 1) ? "," : "");
- *            if ((i + 1) % 8 == 0 || i == out_valid.num_samples - 1) fprintf(f, "\n");
- *        }
- *
- *        fprintf(f, "]\n");
- *        fclose(f);
- *    } else {
- *        printf("Failed to open gravity_output.py for writing\n");
- *    }
- */
+#if DEBUG_DUMP_PREPROCESS_OUTPUT
+    FILE *f = fopen("preprocess_output.py", "w");
+    uint32_t print_num_samples = valid_outputs->valid_output->num_samples;
+    float32_t *print_x = valid_outputs->valid_output->x;
+    float32_t *print_y = valid_outputs->valid_output->y;
+    float32_t *print_z = valid_outputs->valid_output->z;
+
+    if (f) {
+        fprintf(f, "output_x = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_x[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "output_y = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_y[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "output_z = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_z[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fclose(f);
+    } else {
+        printf("Failed to open gravity_output.py for writing\n");
+    }
 #endif
 
-    check_signal_close(&valid_outputs->valid_output,
-                       &valid_outputs->valid_expected_output,
+    check_signal_close(valid_outputs->valid_output,
+                       valid_outputs->valid_expected_output,
                        1e-2f);
 }
 
-/*
- *void test_dc_signal_gravity_up_rotates_down(void) {
- *    const uint32_t N = 100;
- *
- *    float32_t x[N] = {0};
- *    float32_t y[N] = {0};
- *    float32_t z[N] = {0};
- *
- *    for (uint32_t i = 0; i < N; i++) {
- *        z[i] = 1000; // 1g up
- *    }
- *
- *    accel_data_t signal = {
- *        .num_samples = N,
- *        .x = x,
- *        .y = y,
- *        .z = z
- *    };
- *
- *    float32_t x_out[N];
- *    float32_t y_out[N];
- *    float32_t z_out[N];
- *
- *    for (uint32_t i = 0; i < N; ++i) {
- *        x_out[i] = FLT_MAX;
- *        y_out[i] = FLT_MAX;
- *        z_out[i] = FLT_MAX;
- *    }
- *
- *    accel_data_t out = {
- *        .num_samples = N,
- *        .x = x_out,
- *        .y = y_out,
- *        .z = z_out
- *    };
- *
- *    float32_t x_out_expected[N];
- *    float32_t y_out_expected[N];
- *    float32_t z_out_expected[N];
- *
- *    for (uint32_t i = 0; i < N; ++i) {
- *        x_out_expected[i] = 0;
- *        y_out_expected[i] = 0;
- *        z_out_expected[i] = -1000; // 1g down
- *    }
- *
- *    accel_data_t expected = {
- *        .num_samples = N,
- *        .x = x_out_expected,
- *        .y = y_out_expected,
- *        .z = z_out_expected
- *    };
- *
- *    accel_data_t *scratch = get_scratch_buffer(N);
- *    TEST_PREPROCESS_OK(gravity_suppress_rotate(&preprocess,
- *                                               &signal,
- *                                               scratch,
- *                                               &out));
- *
- *    check_signal_close(&out, &expected, 1e-4f);
- *}
- */
+void test_dc_signal_gravity_up_rotates_down(void) {
+    const uint32_t N = gravity_up_input_len;
+    const uint32_t batch_size = 10;
+
+    test_signal_t *test_signal = get_test_signals(gravity_up_input_x,
+                                                  gravity_up_input_y,
+                                                  gravity_up_input_z,
+                                                  gravity_up_output_x,
+                                                  gravity_up_output_y,
+                                                  gravity_up_output_z,
+                                                  N);
+
+    accel_data_t *scratch = get_scratch_buffer(N);
+
+    for (uint32_t start = 0; start < N; start += batch_size) {
+        batch_signal_t *batch_signal = get_batch_signals(test_signal->input_signal,
+                                                         test_signal->output_signal,
+                                                         start,
+                                                         batch_size);
+
+        preprocess_status_t status = gravity_suppress_rotate(&preprocess,
+                                                             batch_signal->batch_in,
+                                                             scratch,
+                                                             batch_signal->batch_out);
+
+        if (start < FILTER_MEAN_GROUP_DELAY + 1) {
+            if (!(status == PREPROCESS_STATUS_ERROR_BUFFERING || status == PREPROCESS_STATUS_OK)) {
+                char message[128];
+
+                sprintf(message, "Unexpected preprocess_status_t value: %d", status);
+                TEST_FAIL_MESSAGE(message);
+            }
+        } else {
+            TEST_PREPROCESS_OK(status);
+        }
+    }
+
+    uint32_t valid_start = GRAVITY_UP_OUTPUT_VALID_START_IDX;
+
+    valid_output_t *valid_outputs = get_valid_outputs(test_signal->output_signal,
+                                                      test_signal->expected_output_signal,
+                                                      valid_start,
+                                                      N);
+
+#if DEBUG_DUMP_PREPROCESS_OUTPUT
+    FILE *f = fopen("preprocess_output_gravity_up.py", "w");
+    uint32_t print_num_samples = valid_outputs->valid_output->num_samples;
+    float32_t *print_x = valid_outputs->valid_output->x;
+    float32_t *print_y = valid_outputs->valid_output->y;
+    float32_t *print_z = valid_outputs->valid_output->z;
+
+    if (f) {
+        fprintf(f, "output_x = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_x[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "output_y = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_y[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "output_z = [\n");
+        for (uint32_t i = 0; i < print_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_z[i], (i < print_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+
+        uint32_t print_expected_num_samples = valid_outputs->valid_output->num_samples;
+        float32_t *print_expected_x = valid_outputs->valid_expected_output->x;
+        float32_t *print_expected_y = valid_outputs->valid_expected_output->y;
+        float32_t *print_expected_z = valid_outputs->valid_expected_output->z;
+
+        fprintf(f, "expected_x = [\n");
+        for (uint32_t i = 0; i < print_expected_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_expected_x[i], (i < print_expected_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_expected_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "expected_y = [\n");
+        for (uint32_t i = 0; i < print_expected_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_expected_y[i], (i < print_expected_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_expected_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+        fprintf(f, "expected_z = [\n");
+        for (uint32_t i = 0; i < print_expected_num_samples; ++i) {
+            fprintf(f, "    %.7g%s", print_expected_z[i], (i < print_expected_num_samples - 1) ? "," : "");
+            if ((i + 1) % 8 == 0 || i == print_expected_num_samples - 1) fprintf(f, "\n");
+        }
+
+        fprintf(f, "]\n");
+
+        fclose(f);
+    } else {
+        printf("Failed to open gravity_output.py for writing\n");
+    }
+#endif
+
+    check_signal_close(valid_outputs->valid_output,
+                       valid_outputs->valid_expected_output,
+                       1e-2f);
+}
