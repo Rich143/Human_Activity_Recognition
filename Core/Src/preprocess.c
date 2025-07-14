@@ -116,9 +116,9 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
             return status;
         }
 
-        float delayed_x;
-        float delayed_y;
-        float delayed_z;
+        float32_t delayed_x;
+        float32_t delayed_y;
+        float32_t delayed_z;
         status = get_delayed_signal(preprocess, &delayed_x, &delayed_y, &delayed_z);
         if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
             // Keep pushing the rest of the signal, but don't process it

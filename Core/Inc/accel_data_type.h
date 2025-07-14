@@ -10,6 +10,11 @@
 
 #include "arm_math_types.h"
 
+/**
+ * Accel data type
+ *
+ * Contains accel data (x, y, z) in m/s^2
+ */
 typedef struct {
     float32_t *x;
     float32_t *y;
