@@ -7,6 +7,7 @@
 
 #include "imu_manager.h"
 #include "accel_data_type.h"
+#include "stm32u5xx_hal.h"
 
 #define IMU_SAMPLING_PERIOD_MS (1000 / IMU_SAMPLING_FREQUENCY_HZ)
 
@@ -40,7 +41,7 @@ int imu_manager_read_window(accel_data_t *window) {
   for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
     motion_sensor_axes_t axes;
 
-    /*sample_time = HAL_GetTick();*/
+    sample_time = HAL_GetTick();
 
     status = motion_sensor_get_axes(MOTION_SENSOR_ACCEL, &axes);
     if (status != BSP_ERROR_NONE) return status;
@@ -49,7 +50,7 @@ int imu_manager_read_window(accel_data_t *window) {
     window->y[i] = mg_to_ms2(axes.yval);
     window->z[i] = mg_to_ms2(axes.zval);
 
-    /*HAL_Delay(IMU_SAMPLING_PERIOD_MS - (HAL_GetTick() - sample_time));*/
+    HAL_Delay(IMU_SAMPLING_PERIOD_MS - (HAL_GetTick() - sample_time));
   }
 
   return status;

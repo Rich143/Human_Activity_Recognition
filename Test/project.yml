@@ -108,6 +108,7 @@
     - ../Drivers/High_Level
     - ../Drivers/Components
     - ../Drivers
+    - HeadersToMock
   :support:
     - support
   :libraries: []
