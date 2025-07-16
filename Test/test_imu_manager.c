@@ -7,6 +7,7 @@
 #include "imu_manager.h"
 
 #include "mock_motion_sensor_interface.h"
+#include "mock_stm32u5xx_hal.h"
 
 accel_data_t window;
 
@@ -23,6 +24,8 @@ void setUp(void) {
     window.x = (float32_t *)malloc(sizeof(float32_t) * IMU_WINDOW_SIZE);
     window.y = (float32_t *)malloc(sizeof(float32_t) * IMU_WINDOW_SIZE);
     window.z = (float32_t *)malloc(sizeof(float32_t) * IMU_WINDOW_SIZE);
+
+    HAL_GetTick_IgnoreAndReturn(0);
 
     init_imu_manager_test();
 }
@@ -58,6 +61,8 @@ void test_read_window(void) {
         motion_sensor_get_axes_ExpectAndReturn(MOTION_SENSOR_ACCEL, NULL, 0);
         motion_sensor_get_axes_IgnoreArg_axes();
         motion_sensor_get_axes_ReturnMemThruPtr_axes(&axes[i], sizeof(motion_sensor_axes_t));
+
+        HAL_Delay_Expect(1000.0f / IMU_SAMPLING_FREQUENCY_HZ);
     }
 
     int32_t status = imu_manager_read_window(&window);

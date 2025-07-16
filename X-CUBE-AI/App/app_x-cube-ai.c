@@ -59,6 +59,7 @@
 
 /* USER CODE BEGIN includes */
 #include "imu_manager.h"
+#include "preprocess.h"
 #include "accel_data_type.h"
 #include <assert.h>
 _Static_assert(IMU_WINDOW_SIZE == AI_NETWORK_IN_1_HEIGHT, "IMU window size must match network input height");
@@ -173,36 +174,80 @@ static int ai_run(void)
 }
 
 /* USER CODE BEGIN 2 */
-int acquire_and_process_data(ai_i8* data[])
-{
+float x_in[IMU_WINDOW_SIZE];
+float y_in[IMU_WINDOW_SIZE];
+float z_in[IMU_WINDOW_SIZE];
+
+float x_scratch[IMU_WINDOW_SIZE];
+float y_scratch[IMU_WINDOW_SIZE];
+float z_scratch[IMU_WINDOW_SIZE];
+
+static accel_data_t input = {
+  .num_samples = IMU_WINDOW_SIZE,
+  .x = x_in,
+  .y = y_in,
+  .z = z_in
+};
+
+static accel_data_t scratch = {
+  .num_samples = IMU_WINDOW_SIZE,
+  .x = x_scratch,
+  .y = y_scratch,
+  .z = z_scratch
+};
+
+preprocess_t preprocess;
+
+accel_data_t network_input_buffer;
+
+accel_data_t *get_network_input_buffer(ai_i8* data[]) {
     /* Format for access is data[H][W][C==1] */
     float (*data_array)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL] =
-      (float (*)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL])data[0];
+        (float (*)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL])data[0];
     float *x_array = &data_array[0][0][0];
     float *y_array = &data_array[0][1][0];
     float *z_array = &data_array[0][2][0];
 
+    network_input_buffer.num_samples = IMU_WINDOW_SIZE;
+    network_input_buffer.x = x_array;
+    network_input_buffer.y = y_array;
+    network_input_buffer.z = z_array;
+
+    return &network_input_buffer;
+}
+
+preprocess_status_t acquire_and_process_data(ai_i8* data[])
+{
     printf("Acquiring window\n");
 
-    accel_data_t window;
+    accel_data_t *output = get_network_input_buffer(data);
 
-    window.num_samples = IMU_WINDOW_SIZE;
-    window.x = x_array;
-    window.y = y_array;
-    window.z = z_array;
-
-    int32_t status = imu_manager_read_window(&window);
+    int32_t status = imu_manager_read_window(&input);
     if (status != BSP_ERROR_NONE) {
-      printf("Failed to read window\n");
+        printf("Failed to read window from IMU\n");
     } else {
-      printf("Window:\n");
+        printf("IMU Window:\n");
 
-      for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
-        printf("X: %ld Y: %ld Z: %ld\n", window.x[i], window.y[i], window.z[i]);
-      }
+        for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
+            printf("X: %f Y: %f Z: %f\n", input.x[i], input.y[i], input.z[i]);
+        }
     }
 
-  return 0;
+    preprocess_status_t preprocess_status = gravity_suppress_rotate(&preprocess,
+                                                         &input,
+                                                         &scratch,
+                                                         output);
+    if (preprocess_status != PREPROCESS_STATUS_OK) {
+        if (preprocess_status == PREPROCESS_STATUS_ERROR_BUFFERING) {
+            printf("Buffering IMU data for preprocessing\n");
+            return preprocess_status;
+        } else {
+            printf("Failed to preprocess\n");
+            return preprocess_status;
+        }
+    }
+
+  return PREPROCESS_STATUS_OK;
 }
 
 int post_process(ai_i8* data[])
@@ -223,6 +268,12 @@ void MX_X_CUBE_AI_Init(void)
     /* USER CODE BEGIN 5 */
   printf("\r\nTEMPLATE - initialization\r\n");
 
+  preprocess_status_t status = preprocess_init(&preprocess);
+  if (status != PREPROCESS_STATUS_OK) {
+      printf("Failed to initialize preprocess\n");
+      while(1);
+  }
+
   ai_boostrap(data_activations0);
     /* USER CODE END 5 */
 }
@@ -236,16 +287,20 @@ void MX_X_CUBE_AI_Process(void)
 
   if (network) {
 
-    do {
-      /* 1 - acquire and pre-process input data */
-      res = acquire_and_process_data(data_ins);
-      /* 2 - process the data - call inference engine */
-      if (res == 0)
-        res = ai_run();
-      /* 3- post-process the predictions */
-      if (res == 0)
-        res = post_process(data_outs);
-    } while (res==0);
+      do {
+          /* 1 - acquire and pre-process input data */
+          preprocess_status_t status = acquire_and_process_data(data_ins);
+          /* 2 - process the data - call inference engine */
+          if (status == PREPROCESS_STATUS_OK) {
+              res = ai_run();
+              /* 3- post-process the predictions */
+              if (res == 0) {
+                  res = post_process(data_outs);
+              }
+          } else if (status != PREPROCESS_STATUS_ERROR_BUFFERING) {
+              res = status;
+          }
+      } while (res==0);
   }
 
   if (res) {
