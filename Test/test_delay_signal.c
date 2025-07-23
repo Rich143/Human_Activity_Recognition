@@ -1,7 +1,12 @@
+#include "Unity/src/unity.h"
 #include "accel_data_type.h"
 #include "unity.h"
 #include "delay_signal.h"
 #include "test_helpers.h"
+
+#include "support/imu_test_data.h"
+
+#include "support/test_signal_helpers.h"
 
 // Helper macros for test status checking
 #define TEST_DELAY_OK(expr) \
@@ -16,14 +21,12 @@
         TEST_ASSERT_EQUAL_INT_MESSAGE((expected), status, "Unexpected delay_status_t value"); \
     } while (0)
 
-void setUp(void) {}
-void tearDown(void) {}
-
 delay_signal_t delay_signal;
 
-void test_delay_init(void) {
+void setUp(void) {
     TEST_DELAY_OK(delay_signal_init(&delay_signal));
 }
+void tearDown(void) {}
 
 void test_delay_init_fail(void) {
     TEST_DELAY_STATUS(delay_signal_init(NULL), DELAY_STATUS_ERROR_NULL);
@@ -36,8 +39,6 @@ void check_signal_single_value(accel_data_t *signal, uint32_t index, float x, fl
 }
 
 void test_push_signal_null(void) {
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
-
     TEST_DELAY_STATUS(delay_signal_push_signal(NULL,
                                                NULL),
                       DELAY_STATUS_ERROR_NULL);
@@ -80,8 +81,6 @@ void test_delay_single_value(void) {
         .z = &z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
-
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal,
                                            &input));
 
@@ -118,8 +117,6 @@ void test_delay_single_old_value(void) {
         .z = &z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
-
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal,
                                            &input));
 
@@ -155,8 +152,6 @@ void test_delay_multiple_values(void) {
         .y = y_out,
         .z = z_out
     };
-
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
 
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal,
                                            &input));
@@ -201,8 +196,6 @@ void test_delay_too_large(void) {
         .z = z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
-
     // Push all input samples into the delay buffer
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
 
@@ -246,8 +239,6 @@ void test_delay_insufficient_history(void) {
         .z = &z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
-
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
 
     // Requesting a delay that is within DELAY_MAX_ALLOWED_DELAY but larger than actual samples pushed
@@ -284,7 +275,6 @@ void test_delay_full_length_max_delay(void) {
         .z = z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
     TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &full_out, DELAY_MAX_ALLOWED_DELAY, MAX));
 
@@ -327,7 +317,6 @@ void test_delay_partial_window(void) {
         .z = &z[expected_start_index]
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
     TEST_DELAY_OK(delay_signal_get_delay_range(&delay_signal, &partial_out, delay, len));
 
@@ -359,7 +348,6 @@ void test_delay_max_len_plus_1(void) {
         .z = &z_out
     };
 
-    TEST_DELAY_OK(delay_signal_init(&delay_signal));
     TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
 
     // This should fail because delay = DELAY_MAX_ALLOWED_DELAY + 1 (too large)
@@ -370,3 +358,59 @@ void test_delay_max_len_plus_1(void) {
                       DELAY_STATUS_ERROR_DELAY_TOO_LARGE);
 }
 
+void test_real_signal(void) {
+    const int batch_size = 24;
+    const int delay_amount = 270;
+
+    TEST_DELAY_OK(delay_signal_init(&delay_signal));
+
+    test_signal_t *test_signal = get_test_signals(unproc_x,
+                                                  unproc_y,
+                                                  unproc_z,
+                                                  unproc_x,
+                                                  unproc_y,
+                                                  unproc_z,
+                                                  IMU_SIGNAL_LENGTH);
+
+    for (uint32_t i = 0; i < IMU_SIGNAL_LENGTH; i += batch_size) {
+        /*printf("Testing batch %d\n", i / batch_size);*/
+        accel_data_t input = {
+            .num_samples = batch_size,
+            .x = &(test_signal->input_signal->x[i]),
+            .y = &(test_signal->input_signal->y[i]),
+            .z = &(test_signal->input_signal->z[i])
+        };
+
+        accel_data_t batch_output = {
+            .num_samples = batch_size,
+            .x = &(test_signal->output_signal->x[i]),
+            .y = &(test_signal->output_signal->y[i]),
+            .z = &(test_signal->output_signal->z[i])
+        };
+
+        int end_input_idx = i + batch_size;
+        int output_idx = end_input_idx - delay_amount - 1;
+        /*printf("Input end idx %d, Output idx %d\n", end_input_idx, output_idx);*/
+        accel_data_t expected_output = {
+            .num_samples = batch_size,
+            .x = &(test_signal->input_signal->x[output_idx]),
+            .y = &(test_signal->input_signal->y[output_idx]),
+            .z = &(test_signal->input_signal->z[output_idx])
+        };
+
+        TEST_DELAY_OK(delay_signal_push_signal(&delay_signal, &input));
+
+        delay_status_t status = delay_signal_get_delay_range(&delay_signal, &batch_output, delay_amount, batch_size);
+        if (i <= delay_amount) {
+            continue;
+        } else {
+            TEST_ASSERT_EQUAL_INT_MESSAGE(DELAY_STATUS_OK, status, "Unexpected delay_status_t value"); \
+        }
+
+
+        check_signal(&batch_output, &expected_output);
+    }
+
+
+
+}
