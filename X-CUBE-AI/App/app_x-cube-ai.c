@@ -62,6 +62,7 @@
 #include "preprocess.h"
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
+#include "ai_output_data_type.h"
 #include <assert.h>
 _Static_assert(IMU_WINDOW_SIZE == AI_NETWORK_IN_1_HEIGHT, "IMU window size must match network input height");
 /* USER CODE END includes */
@@ -261,19 +262,50 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[])
         /*printf("X: %f Y: %f Z: %f\n", output->x[i], output->y[i], output->z[i]);*/
     /*}*/
 
-    print_imu_csv(&input, &scratch, output, IMU_WINDOW_SIZE);
+    /*print_imu_csv(&input, &scratch, output, IMU_WINDOW_SIZE);*/
 
     return PREPROCESS_STATUS_OK;
 }
 
+int get_max_value(float *data_array, int len) {
+    int max_idx = 0;
+    for (int i = 0; i < len; i++) {
+        if (data_array[i] > data_array[max_idx]) {
+            max_idx = i;
+        }
+    }
+
+    return max_idx;
+}
+
 int post_process(ai_i8* data[])
 {
-  float *data_array = (float *)data[0];
+    float *data_array = (float *)data[0];
 
-  /*printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],*/
-         /*data_array[2], data_array[3]);*/
+    printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],
+         data_array[2], data_array[3]);
 
-  return 0;
+    int max_idx = get_max_value(data_array, 4);
+    printf("Max index: %d, label: ", max_idx);
+    switch (max_idx) {
+        case AI_OUTPUT_DATA_TYPE_STATIONARY:
+            printf("Stationary\n");
+            break;
+        case AI_OUTPUT_DATA_TYPE_WALKING:
+            printf("Walking\n");
+            break;
+        case AI_OUTPUT_DATA_TYPE_RUNNING:
+            printf("Running\n");
+            break;
+        case AI_OUTPUT_DATA_TYPE_CYCLING:
+            printf("Cycling\n");
+            break;
+        default:
+            printf("Unknown\n");
+            break;
+    }
+
+    return 0;
 }
 /* USER CODE END 2 */
 
