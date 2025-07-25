@@ -61,6 +61,7 @@
 #include "imu_manager.h"
 #include "preprocess.h"
 #include "accel_data_type.h"
+#include "ai_input_data_type.h"
 #include <assert.h>
 _Static_assert(IMU_WINDOW_SIZE == AI_NETWORK_IN_1_HEIGHT, "IMU window size must match network input height");
 /* USER CODE END includes */
@@ -198,45 +199,53 @@ static accel_data_t scratch = {
 
 preprocess_t preprocess;
 
-accel_data_t network_input_buffer;
+ai_input_data_t network_input_buffer;
 
-accel_data_t *get_network_input_buffer(ai_i8* data[]) {
+void print_imu_csv(const accel_data_t *unproc,
+                   const accel_data_t *lpf,
+                   const ai_input_data_t *proc,
+                   int window_size) {
+    for (int i = 0; i < window_size; i++) {
+        printf("%.6f,%.6f,%.6f,", unproc->x[i], unproc->y[i], unproc->z[i]);
+        printf("%.6f,%.6f,%.6f,", lpf->x[i], lpf->y[i], lpf->z[i]);
+        printf("%.6f,%.6f,%.6f\n",
+               AI_INPUT_GET_X(proc->data_array, i),
+               AI_INPUT_GET_Y(proc->data_array, i),
+               AI_INPUT_GET_Z(proc->data_array, i));
+    }
+}
+
+ai_input_data_t *get_network_input_buffer(ai_i8* data[]) {
     /* Format for access is data[H][W][C==1] */
     float (*data_array)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL] =
         (float (*)[AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL])data[0];
-    float *x_array = &data_array[0][0][0];
-    float *y_array = &data_array[0][1][0];
-    float *z_array = &data_array[0][2][0];
 
-    network_input_buffer.num_samples = IMU_WINDOW_SIZE;
-    network_input_buffer.x = x_array;
-    network_input_buffer.y = y_array;
-    network_input_buffer.z = z_array;
+    network_input_buffer.data_array = data_array;
 
     return &network_input_buffer;
 }
 
 preprocess_status_t acquire_and_process_data(ai_i8* data[])
 {
-    printf("Acquiring window\n");
+    /*printf("Acquiring window\n");*/
 
-    accel_data_t *output = get_network_input_buffer(data);
+    ai_input_data_t *output = get_network_input_buffer(data);
 
     int32_t status = imu_manager_read_window(&input);
     if (status != BSP_ERROR_NONE) {
         printf("Failed to read window from IMU\n");
+        return PREPROCESS_STATUS_ERROR_OTHER;
     } else {
-        printf("IMU Window:\n");
-
-        for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
-            printf("X: %f Y: %f Z: %f\n", input.x[i], input.y[i], input.z[i]);
-        }
+        /*printf("IMU Window:\n");*/
+        /*for (int i = 0; i < IMU_WINDOW_SIZE; i++) {*/
+            /*printf("X: %f Y: %f Z: %f\n", input.x[i], input.y[i], input.z[i]);*/
+        /*}*/
     }
 
-    preprocess_status_t preprocess_status = gravity_suppress_rotate(&preprocess,
-                                                         &input,
-                                                         &scratch,
-                                                         output);
+    preprocess_status_t preprocess_status =
+        gravity_suppress_rotate(&preprocess, &input,
+                                &scratch, output);
+
     if (preprocess_status != PREPROCESS_STATUS_OK) {
         if (preprocess_status == PREPROCESS_STATUS_ERROR_BUFFERING) {
             printf("Buffering IMU data for preprocessing\n");
@@ -247,15 +256,22 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[])
         }
     }
 
-  return PREPROCESS_STATUS_OK;
+    /*printf("Processed Window:\n");*/
+    /*for (int i = 0; i < IMU_WINDOW_SIZE; i++) {*/
+        /*printf("X: %f Y: %f Z: %f\n", output->x[i], output->y[i], output->z[i]);*/
+    /*}*/
+
+    print_imu_csv(&input, &scratch, output, IMU_WINDOW_SIZE);
+
+    return PREPROCESS_STATUS_OK;
 }
 
 int post_process(ai_i8* data[])
 {
   float *data_array = (float *)data[0];
 
-  printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],
-         data_array[2], data_array[3]);
+  /*printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],*/
+         /*data_array[2], data_array[3]);*/
 
   return 0;
 }

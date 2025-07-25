@@ -26,7 +26,7 @@
 TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_cascade_df2T_f32.c")
 TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_cascade_df2T_init_f32.c")
 
-#define DEBUG_DUMP_PREPROCESS_OUTPUT 1
+#define DEBUG_DUMP_PREPROCESS_OUTPUT 0
 #if DEBUG_DUMP_PREPROCESS_OUTPUT
 #include <stdio.h>
 #endif
