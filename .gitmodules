@@ -16,3 +16,9 @@
 [submodule "Test/Unity"]
 	path = Test/Unity
 	url = https://github.com/ThrowTheSwitch/Unity.git
+[submodule "Drivers/Components/mx25lm51245g"]
+	path = Drivers/Components/mx25lm51245g
+	url = https://github.com/STMicroelectronics/stm32-mx25lm51245g.git
+[submodule "Drivers/Components/aps6408"]
+	path = Drivers/Components/aps6408
+	url = https://github.com/STMicroelectronics/stm32-aps6408.git
