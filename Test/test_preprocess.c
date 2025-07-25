@@ -47,6 +47,7 @@ TEST_SOURCE_FILE("../Drivers/CMSIS-DSP/Source/FilteringFunctions/arm_biquad_casc
 preprocess_t preprocess;
 
 void setUp(void) {
+    test_signal_setUp();
     TEST_PREPROCESS_OK(preprocess_init(&preprocess));
 }
 
@@ -77,7 +78,9 @@ void test_dc_signal_gravity_down(void) {
         preprocess_status_t status = gravity_suppress_rotate(&preprocess,
                                                              batch_signal->batch_in,
                                                              scratch,
-                                                             batch_signal->batch_out);
+                                                             &batch_signal->batch_out);
+
+        copy_output_batch(batch_signal);
 
         if (start < FILTER_MEAN_GROUP_DELAY + 1) {
             if (!(status == PREPROCESS_STATUS_ERROR_BUFFERING || status == PREPROCESS_STATUS_OK)) {
@@ -161,7 +164,9 @@ void test_dc_signal_gravity_up_rotates_down(void) {
         preprocess_status_t status = gravity_suppress_rotate(&preprocess,
                                                              batch_signal->batch_in,
                                                              scratch,
-                                                             batch_signal->batch_out);
+                                                             &batch_signal->batch_out);
+
+        copy_output_batch(batch_signal);
 
         if (start < FILTER_MEAN_GROUP_DELAY + 1) {
             if (!(status == PREPROCESS_STATUS_ERROR_BUFFERING || status == PREPROCESS_STATUS_OK)) {
@@ -273,7 +278,9 @@ void test_slowly_rotating_gravity(void) {
         preprocess_status_t status = gravity_suppress_rotate(&preprocess,
                                                              batch_signal->batch_in,
                                                              scratch,
-                                                             batch_signal->batch_out);
+                                                             &batch_signal->batch_out);
+
+        copy_output_batch(batch_signal);
 
         if (start < FILTER_MEAN_GROUP_DELAY + 1) {
             if (!(status == PREPROCESS_STATUS_ERROR_BUFFERING || status == PREPROCESS_STATUS_OK)) {

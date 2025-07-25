@@ -72,6 +72,12 @@ test_signal_t *get_test_signals(const float32_t *x_in,
     return &test_signals;
 }
 
+void init_batch_signals() {
+    float *data_array = malloc(sizeof(float) * AI_INPUT_HEIGHT * AI_INPUT_WIDTH * AI_INPUT_CHANNEL);
+    batch_signals.batch_out.data_array =
+        (float (*)[AI_INPUT_WIDTH][AI_INPUT_CHANNEL])data_array;
+}
+
 batch_signal_t *get_batch_signals(const accel_data_t *in,
                                   accel_data_t *out,
                                   uint32_t start,
@@ -92,9 +98,22 @@ batch_signal_t *get_batch_signals(const accel_data_t *in,
     output_batch.z = &out->z[start];
 
     batch_signals.batch_in = &input_batch;
-    batch_signals.batch_out = &output_batch;
+    batch_signals.accel_data_t_batch_out = &output_batch;
 
     return &batch_signals;
+}
+
+void copy_output_batch(batch_signal_t *batch) {
+    for (uint32_t i = 0; i < batch->batch_in->num_samples; ++i) {
+        batch->accel_data_t_batch_out->x[i] =
+            AI_INPUT_GET_X(batch->batch_out.data_array, i);
+
+        batch->accel_data_t_batch_out->y[i] =
+            AI_INPUT_GET_Y(batch->batch_out.data_array, i);
+
+        batch->accel_data_t_batch_out->z[i] =
+            AI_INPUT_GET_Z(batch->batch_out.data_array, i);
+    }
 }
 
 valid_output_t *get_valid_outputs(const accel_data_t *output,
@@ -122,6 +141,10 @@ valid_output_t *get_valid_outputs(const accel_data_t *output,
     return &valid_outputs;
 }
 
+void test_signal_setUp() {
+    init_batch_signals();
+}
+
 void test_signal_tearDown(void) {
     if (preprocess_output.x != NULL) {
         free(preprocess_output.x);
@@ -133,5 +156,9 @@ void test_signal_tearDown(void) {
         free(scratch_buffer.x);
         free(scratch_buffer.y);
         free(scratch_buffer.z);
+    }
+
+    if (batch_signals.batch_out.data_array != NULL) {
+        free(batch_signals.batch_out.data_array);
     }
 }

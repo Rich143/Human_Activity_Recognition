@@ -6,6 +6,7 @@
  */
 
 #include "accel_data_type.h"
+#include "ai_input_data_type.h"
 #include "arm_math.h"
 #include "delay_signal.h"
 #include "filter.h"
@@ -89,7 +90,7 @@ preprocess_status_t push_signal(preprocess_t *preprocess, float *x, float *y, fl
 preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
                                             const accel_data_t *input,
                                             accel_data_t *scratch_buffer,
-                                            accel_data_t *output)
+                                            ai_input_data_t *output)
 {
     preprocess_status_t status;
 
@@ -161,9 +162,15 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
          * Rodrigues' formula for rotations (a is the dynamic acceleration dyn)
          * a' = a * cos + (v x a) * sin + v * (v . a) * (1 - cos)
          */
-        output->x[i] = dyn_x * cos_theta + v_y * dyn_z * sin_theta + v_x * v_factor;
-        output->y[i] = dyn_y * cos_theta - v_x * dyn_z * sin_theta + v_y * v_factor;
-        output->z[i] = dyn_z * cos_theta + (v_x * dyn_y - v_y * dyn_x) * sin_theta;
+
+        AI_INPUT_GET_X(output->data_array, i)
+            = dyn_x * cos_theta + v_y * dyn_z * sin_theta + v_x * v_factor;
+
+        AI_INPUT_GET_Y(output->data_array, i)
+            = dyn_y * cos_theta - v_x * dyn_z * sin_theta + v_y * v_factor;
+
+        AI_INPUT_GET_Z(output->data_array, i)
+            = dyn_z * cos_theta + (v_x * dyn_y - v_y * dyn_x) * sin_theta;
     }
 
     return PREPROCESS_STATUS_OK;

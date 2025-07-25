@@ -1,6 +1,7 @@
 #pragma once
 
 #include "accel_data_type.h"
+#include "ai_input_data_type.h"
 
 typedef struct {
     accel_data_t *input_signal;
@@ -10,7 +11,8 @@ typedef struct {
 
 typedef struct {
     accel_data_t *batch_in;
-    accel_data_t *batch_out;
+    accel_data_t *accel_data_t_batch_out;
+    ai_input_data_t batch_out;
 } batch_signal_t;
 
 typedef struct {
@@ -20,6 +22,8 @@ typedef struct {
 
 
 void test_signal_tearDown(void);
+
+void test_signal_setUp();
 
 accel_data_t *get_scratch_buffer(uint32_t num_samples);
 
@@ -35,6 +39,8 @@ batch_signal_t *get_batch_signals(const accel_data_t *in,
                                   accel_data_t *out,
                                   uint32_t start,
                                   uint32_t batch_size);
+
+void copy_output_batch(batch_signal_t *batch);
 
 valid_output_t *get_valid_outputs(const accel_data_t *output,
                                   const accel_data_t *expected_output,

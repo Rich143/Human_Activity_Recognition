@@ -11,6 +11,7 @@
 #include <float.h>
 #include "arm_math.h"
 #include "accel_data_type.h"
+#include "ai_input_data_type.h"
 #include "delay_signal.h"
 #include "filter.h"
 
@@ -32,5 +33,5 @@ preprocess_status_t preprocess_init(preprocess_t *preprocess);
 preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
                                             const accel_data_t *input,
                                             accel_data_t *scratch_buffer,
-                                            accel_data_t *output);
+                                            ai_input_data_t *output);
 #endif
