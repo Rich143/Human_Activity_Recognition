@@ -1,5 +1,6 @@
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
+#include "build/test/mocks/test_flash_log/mock_nor_flash.h"
 #include "support/imu_test_data.h"
 #include "unity.h"
 
@@ -24,7 +25,12 @@
                                       "Expected FLASH_LOG_OK"); \
     } while (0)
 
-const uint32_t testFlashNumRows = 64;
+#define TEST_FLASH_LOG_STATUS(expr, expected) \
+    do { \
+        flash_log_status_t status = (expr); \
+        TEST_ASSERT_EQUAL_INT_MESSAGE((expected), status, \
+                                      "Unexpected flash_log_status value"); \
+    } while (0)
 
 typedef struct {
     accel_data_t unproc;
@@ -34,14 +40,34 @@ typedef struct {
     uint32_t output_class;
 } test_log_input_data_t;
 
-test_log_input_data_t testLogInputData;
-flash_log_row_t *testExpectedRows;
+const uint32_t test_flash_log_max_num_saved_rows = 1000;
 
-void setUp(void)
+test_log_input_data_t testLogInputData;
+flash_log_row_t *gTestExpectedRows;
+
+void setUp(void) { }
+
+void init_flash_log(void)
 {
     nor_flash_init_ExpectAndReturn(BSP_ERROR_NONE);
 
-    TEST_FLASH_LOG_OK(flash_log_init());
+    TEST_FLASH_LOG_OK(flash_log_init(test_flash_log_max_num_saved_rows));
+}
+
+int nor_flash_read_cb(uint32_t readAddress, uint8_t* pBuffer, uint32_t size, int cmock_num_calls) {
+    uint8_t *flash = (uint8_t *)gTestExpectedRows;
+    memcpy(pBuffer, &flash[readAddress], size);
+
+    return BSP_ERROR_NONE;
+}
+
+void initTestFlash(uint32_t numRows) {
+    gTestExpectedRows = malloc(numRows * sizeof(flash_log_row_t));
+    memset(gTestExpectedRows, 0xFF, numRows * sizeof(flash_log_row_t));
+
+    nor_flash_read_Stub(nor_flash_read_cb);
+
+    init_flash_log();
 }
 
 void tearDown(void)
@@ -77,13 +103,15 @@ void tearDown(void)
         testLogInputData.ai_input.data_array = NULL;
     }
 
-    if (testExpectedRows != NULL) {
-        free(testExpectedRows);
-        testExpectedRows = NULL;
+    if (gTestExpectedRows != NULL) {
+        free(gTestExpectedRows);
+        gTestExpectedRows = NULL;
     }
 }
 
 void test_single_write() {
+    initTestFlash(1);
+
     float unproc_x = 1.1f;
     float unproc_y = 2.2f;
     float unproc_z = 3.3f;
@@ -140,7 +168,7 @@ void test_single_write() {
 
     nor_flash_write_ExpectWithArrayAndReturn(0, &expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
 
-    flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, 1);
+    TEST_FLASH_LOG_OK(flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, 1));
 }
 
 test_log_input_data_t *get_log_input_data_double_write() {
@@ -185,7 +213,9 @@ test_log_input_data_t *get_log_input_data_double_write() {
     return &testLogInputData;
 }
 
-flash_log_row_t * get_expected_rows_double_write(test_log_input_data_t * testLogInputData) {
+flash_log_row_t * get_expected_rows_double_write(test_log_input_data_t *testLogInputData,
+                                                 flash_log_row_t *testExpectedRows)
+{
     flash_log_row_t expected_row_0 = {
         .row_start_marker = FLASH_LOG_ROW_START_MARKER,
 
@@ -226,175 +256,127 @@ flash_log_row_t * get_expected_rows_double_write(test_log_input_data_t * testLog
         .contains_output = 1,
     };
 
-    flash_log_row_t * testExpectedRows = malloc(2 * sizeof(flash_log_row_t));
-
     memcpy(&testExpectedRows[0], &expected_row_0, sizeof(flash_log_row_t));
     memcpy(&testExpectedRows[1], &expected_row_1, sizeof(flash_log_row_t));
-
-    /*testExpectedRows = malloc(2 * sizeof(flash_log_row_t));*/
-
-    /*testExpectedRows[0].row_start_marker = FLASH_LOG_ROW_START_MARKER;*/
-
-    /*testExpectedRows[0].unproc_x = testLogInputData->unproc.x[0];*/
-    /*testExpectedRows[0].unproc_y = testLogInputData->unproc.y[0];*/
-    /*testExpectedRows[0].unproc_z = testLogInputData->unproc.z[0];*/
-
-    /*testExpectedRows[0].lowpass_filtered_x = testLogInputData->filtered.x[0];*/
-    /*testExpectedRows[0].lowpass_filtered_y = testLogInputData->filtered.y[0];*/
-    /*testExpectedRows[0].lowpass_filtered_z = testLogInputData->filtered.z[0];*/
-
-    /*testExpectedRows[0].proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 0);*/
-    /*testExpectedRows[0].proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 0);*/
-    /*testExpectedRows[0].proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 0);*/
-
-    /*testExpectedRows[0].model_output[0] = 0;*/
-    /*testExpectedRows[0].model_output[1] = 0;*/
-    /*testExpectedRows[0].model_output[2] = 0;*/
-    /*testExpectedRows[0].model_output[3] = 0;*/
-
-    /*testExpectedRows[0].output_class = 0;*/
-    /*testExpectedRows[0].contains_output = 0;*/
-
-    /*testExpectedRows[1].row_start_marker = FLASH_LOG_ROW_START_MARKER;*/
-
-    /*testExpectedRows[1].unproc_x = testLogInputData->unproc.x[1];*/
-    /*testExpectedRows[1].unproc_y = testLogInputData->unproc.y[1];*/
-    /*testExpectedRows[1].unproc_z = testLogInputData->unproc.z[1];*/
-
-    /*testExpectedRows[1].lowpass_filtered_x = testLogInputData->filtered.x[1];*/
-    /*testExpectedRows[1].lowpass_filtered_y = testLogInputData->filtered.y[1];*/
-    /*testExpectedRows[1].lowpass_filtered_z = testLogInputData->filtered.z[1];*/
-
-    /*testExpectedRows[1].proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 1);*/
-    /*testExpectedRows[1].proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 1);*/
-    /*testExpectedRows[1].proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 1);*/
-
-    /*testExpectedRows[0].model_output[0] = testLogInputData->model_output[0];*/
-    /*testExpectedRows[0].model_output[1] = testLogInputData->model_output[1];*/
-    /*testExpectedRows[0].model_output[2] = testLogInputData->model_output[2];*/
-    /*testExpectedRows[0].model_output[3] = testLogInputData->model_output[3];*/
-
-    /*testExpectedRows[1].output_class = testLogInputData->output_class;*/
-
-    /*testExpectedRows[1].contains_output = 1;*/
 
     return testExpectedRows;
 }
 
 void test_double_write() {
-    /*float unproc_x[2] = {1.1f, 1.2f};*/
-    /*float unproc_y[2] = {2.2f, 2.3f};*/
-    /*float unproc_z[2] = {3.3f, 3.4f};*/
-
-    /*accel_data_t unproc = {*/
-        /*.num_samples = 2,*/
-        /*.x = unproc_x,*/
-        /*.y = unproc_y,*/
-        /*.z = unproc_z,*/
-    /*};*/
-
-    /*float filtered_x[2] = {4.4f, 4.5f};*/
-    /*float filtered_y[2] = {5.5f, 5.6f};*/
-    /*float filtered_z[2] = {6.6f, 6.7f};*/
-
-    /*accel_data_t filtered = {*/
-        /*.num_samples = 2,*/
-        /*.x = filtered_x,*/
-        /*.y = filtered_y,*/
-        /*.z = filtered_z,*/
-    /*};*/
-
-    /*float data_array[2][AI_INPUT_WIDTH][AI_INPUT_CHANNEL];*/
-    /*AI_INPUT_GET_X(data_array, 0) = 7.7;*/
-    /*AI_INPUT_GET_Y(data_array, 0) = 8.8;*/
-    /*AI_INPUT_GET_Z(data_array, 0) = 9.9;*/
-
-    /*AI_INPUT_GET_X(data_array, 1) = 7.8;*/
-    /*AI_INPUT_GET_Y(data_array, 1) = 8.9;*/
-    /*AI_INPUT_GET_Z(data_array, 1) = 9.10;*/
-
-    /*ai_input_data_t proc = {*/
-        /*.data_array = data_array,*/
-    /*};*/
-
-    /*float model_output[4] = {10.10f, 11.11f, 12.12f, 13.13f};*/
-    /*uint32_t output_class = 3;*/
-
     test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
 
-    flash_log_row_t *expectedRows = get_expected_rows_double_write(testLogInputData);
+    initTestFlash(2);
 
-    /*flash_log_row_t expected_row_0 = {*/
-        /*.row_start_marker = FLASH_LOG_ROW_START_MARKER,*/
+    flash_log_row_t *expectedRows = get_expected_rows_double_write(testLogInputData, gTestExpectedRows);
 
-        /*.unproc_x = testLogInputData->unproc.x[0],*/
-        /*.unproc_y = testLogInputData->unproc.y[0],*/
-        /*.unproc_z = testLogInputData->unproc.z[0],*/
+    nor_flash_write_ExpectWithArrayAndReturn(0,
+                                             (uint8_t *)&expectedRows[0],
+                                             sizeof(flash_log_row_t),
+                                             sizeof(flash_log_row_t),
+                                             BSP_ERROR_NONE);
 
-        /*.lowpass_filtered_x = testLogInputData->filtered.x[0],*/
-        /*.lowpass_filtered_y = testLogInputData->filtered.y[0],*/
-        /*.lowpass_filtered_z = testLogInputData->filtered.z[0],*/
+    nor_flash_write_ExpectWithArrayAndReturn(sizeof(flash_log_row_t),
+                                             (uint8_t *)&expectedRows[1],
+                                             sizeof(flash_log_row_t),
+                                             sizeof(flash_log_row_t),
+                                             BSP_ERROR_NONE);
 
-        /*.proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 0),*/
-        /*.proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 0),*/
-        /*.proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 0),*/
-
-        /*.model_output = {0, 0, 0, 0},*/
-        /*.output_class = 0,*/
-        /*.contains_output = 0,*/
-    /*};*/
-
-    /*flash_log_row_t expected_row_1 = {*/
-        /*.row_start_marker = FLASH_LOG_ROW_START_MARKER,*/
-
-        /*.unproc_x = testLogInputData->unproc.x[1],*/
-        /*.unproc_y = testLogInputData->unproc.y[1],*/
-        /*.unproc_z = testLogInputData->unproc.z[1],*/
-
-        /*.lowpass_filtered_x = testLogInputData->filtered.x[1],*/
-        /*.lowpass_filtered_y = testLogInputData->filtered.y[1],*/
-        /*.lowpass_filtered_z = testLogInputData->filtered.z[1],*/
-
-        /*.proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 1),*/
-        /*.proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 1),*/
-        /*.proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 1),*/
-
-        /*.model_output = {testLogInputData->model_output[0], testLogInputData->model_output[1], testLogInputData->model_output[2], testLogInputData->model_output[3]},*/
-        /*.output_class = testLogInputData->output_class,*/
-        /*.contains_output = 1,*/
-    /*};*/
-
-    /*[>flash_log_row_t expected_row_1 = {<]*/
-        /*[>.row_start_marker = FLASH_LOG_ROW_START_MARKER,<]*/
-
-        /*[>.unproc_x = unproc_x[1],<]*/
-        /*[>.unproc_y = unproc_y[1],<]*/
-        /*[>.unproc_z = unproc_z[1],<]*/
-
-        /*[>.lowpass_filtered_x = filtered_x[1],<]*/
-        /*[>.lowpass_filtered_y = filtered_y[1],<]*/
-        /*[>.lowpass_filtered_z = filtered_z[1],<]*/
-
-        /*[>.proc_x = AI_INPUT_GET_X(data_array, 1),<]*/
-        /*[>.proc_y = AI_INPUT_GET_Y(data_array, 1),<]*/
-        /*[>.proc_z = AI_INPUT_GET_Z(data_array, 1),<]*/
-
-        /*[>.model_output = {model_output[0], model_output[1], model_output[2], model_output[3]},<]*/
-        /*[>.output_class = output_class,<]*/
-        /*[>.contains_output = 1,<]*/
-    /*[>};<]*/
-
-    nor_flash_write_ExpectWithArrayAndReturn(0, &expectedRows[0], sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
-    nor_flash_write_ExpectWithArrayAndReturn(0, &expectedRows[1], sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
-
-    flash_log_write_window(&testLogInputData->unproc,
+    TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
                            &testLogInputData->filtered,
                            &testLogInputData->ai_input,
                            testLogInputData->model_output,
                            testLogInputData->output_class,
-                           2);
+                           2));
 }
 
-void test_recover_log_pointer() {
+void test_multiple_double_writes() {
+    test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
 
+    initTestFlash(8);
+    flash_log_row_t *expectedRows = get_expected_rows_double_write(testLogInputData, gTestExpectedRows);
+
+    for (int i = 0; i < 8; i += 2) {
+        uint32_t expectedAddress = i * sizeof(flash_log_row_t);
+
+        nor_flash_write_ExpectWithArrayAndReturn(expectedAddress,
+                                                 (uint8_t *)&expectedRows[0],
+                                                 sizeof(flash_log_row_t),
+                                                 sizeof(flash_log_row_t),
+                                                 BSP_ERROR_NONE);
+        nor_flash_write_ExpectWithArrayAndReturn(expectedAddress + sizeof(flash_log_row_t),
+                                                 (uint8_t *)&expectedRows[1],
+                                                 sizeof(flash_log_row_t),
+                                                 sizeof(flash_log_row_t),
+                                                 BSP_ERROR_NONE);
+
+        TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
+                                                 &testLogInputData->filtered,
+                                                 &testLogInputData->ai_input,
+                                                 testLogInputData->model_output,
+                                                 testLogInputData->output_class,
+                                                 2));
+    }
+
+
+}
+
+void test_fill_log() {
+    initTestFlash(test_flash_log_max_num_saved_rows);
+
+    test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
+
+    nor_flash_write_IgnoreAndReturn(BSP_ERROR_NONE);
+
+    for (int i = 0; i < test_flash_log_max_num_saved_rows; i += 2) {
+        TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
+                                                 &testLogInputData->filtered,
+                                                 &testLogInputData->ai_input,
+                                                 testLogInputData->model_output,
+                                                 testLogInputData->output_class,
+                                                 2));
+    }
+
+    TEST_FLASH_LOG_STATUS(flash_log_write_window(&testLogInputData->unproc,
+                                             &testLogInputData->filtered,
+                                             &testLogInputData->ai_input,
+                                             testLogInputData->model_output,
+                                             testLogInputData->output_class,
+                                             2),
+                          FLASH_LOG_FULL);
+}
+
+void test_recover_log_pointer_less_than_buffer_size() {
+    const uint32_t testFlashNumRows = 10;
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(testFlashNumRows);
+    flash_log_row_t * expectedRows =
+        get_expected_rows_double_write(testLogInputData,
+                                       gTestExpectedRows);
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    uint32_t numLoggedRows = flash_log_get_num_log_entries();
+
+    TEST_ASSERT_EQUAL_UINT32(2, numLoggedRows);
+}
+
+void test_recover_log_pointer_greater_than_buffer_size() {
+    const uint32_t testFlashNumRows = 128;
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(testFlashNumRows);
+
+    for (uint32_t i = 0; i < testFlashNumRows - 10; i += 2) {
+        get_expected_rows_double_write(testLogInputData,
+                                       &gTestExpectedRows[i]);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    uint32_t numLoggedRows = flash_log_get_num_log_entries();
+
+    TEST_ASSERT_EQUAL_UINT32(testFlashNumRows - 10, numLoggedRows);
 }

@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "flash_log.h"
 #include "flash_log_internal.h"
@@ -14,8 +16,35 @@
 static_assert(sizeof(flash_log_row_t) == FLASH_LOG_ROW_SIZE,
               "sizeof(flash_log_row_t) != FLASH_LOG_ROW_SIZE");
 
-flash_log_status_t flash_log_init(void) {
+// This makes buffer equal 4096 bytes, which equals a subsector of flash
+#define FLASH_LOG_BUFFER_NUM_ROWS 64
+
+#define FLASH_LOG_SIZE (flash_log_max_saved_rows * FLASH_LOG_ROW_SIZE)
+
+// Max value allowed for number of saved rows
+#define CONFIG_MAX_SAVED_ROWS (NOR_FLASH_SIZE / FLASH_LOG_ROW_SIZE)
+
+flash_log_row_t flash_log_buffer[FLASH_LOG_BUFFER_NUM_ROWS];
+uint32_t flash_log_num_rows;
+uint32_t flash_log_max_saved_rows;
+
+flash_log_status_t flash_log_init(uint32_t max_num_saved_samples) {
+    if (max_num_saved_samples > CONFIG_MAX_SAVED_ROWS) {
+        return FLASH_LOG_CONFIG_ERROR;
+    }
+
+    flash_log_max_saved_rows = max_num_saved_samples;
+
+    flash_log_status_t status = flash_log_recover_log_pointer();
+    if (status != FLASH_LOG_OK) {
+        return status;
+    }
+
     return nor_flash_init();
+}
+
+uint32_t get_flash_log_write_address(void) {
+    return flash_log_num_rows * sizeof(flash_log_row_t);
 }
 
 flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
@@ -28,6 +57,10 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
     flash_log_row_t row;
 
     for (int i = 0; i < window_size; i++) {
+        if (flash_log_num_rows >= flash_log_max_saved_rows) {
+            return FLASH_LOG_FULL;
+        }
+
         row.row_start_marker = FLASH_LOG_ROW_START_MARKER;
 
         row.unproc_x = unproc->x[i];
@@ -60,11 +93,49 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
             row.contains_output = 0;
         }
 
-        int32_t rc = nor_flash_write(0, (uint8_t *)&row, FLASH_LOG_ROW_SIZE);
+        uint32_t writeAddress = get_flash_log_write_address();
+
+        int32_t rc = nor_flash_write(writeAddress, (uint8_t *)&row, FLASH_LOG_ROW_SIZE);
         if (rc != 0) {
             return FLASH_LOG_ERROR;
         }
+
+        flash_log_num_rows++;
     }
 
     return FLASH_LOG_OK;
+}
+
+flash_log_status_t flash_log_recover_log_pointer() {
+    uint32_t readAddress = 0;
+    bool found_log_pointer = false;
+
+    flash_log_num_rows = 0;
+
+    while (!found_log_pointer && readAddress < FLASH_LOG_SIZE) {
+        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+
+        for (int i = 0; i < FLASH_LOG_BUFFER_NUM_ROWS; i++) {
+            if (flash_log_buffer[i].row_start_marker != FLASH_LOG_ROW_START_MARKER) {
+                flash_log_num_rows += i;
+                found_log_pointer = true;
+                break;
+            }
+        }
+
+        if (!found_log_pointer) {
+            readAddress += sizeof(flash_log_buffer);
+            flash_log_num_rows += FLASH_LOG_BUFFER_NUM_ROWS;
+        }
+    }
+
+    if (found_log_pointer) {
+        return FLASH_LOG_OK;
+    } else {
+        return FLASH_LOG_FULL;
+    }
+}
+
+uint32_t flash_log_get_num_log_entries() {
+    return flash_log_num_rows;
 }
