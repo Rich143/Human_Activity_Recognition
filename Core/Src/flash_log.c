@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "flash_log.h"
 #include "flash_log_internal.h"
@@ -178,4 +179,45 @@ flash_log_status_t flash_log_recover_log_pointer() {
 
 uint32_t flash_log_get_num_log_entries() {
     return flash_log_num_rows;
+}
+
+flash_log_status_t flash_log_print_csv() {
+    uint32_t readAddress = 0;
+    uint32_t num_rows = flash_log_get_num_log_entries();
+
+    printf("unproc_x,unproc_y,unproc_z,lowpass_filtered_x,lowpass_filtered_y,lowpass_filtered_z,");
+    printf("proc_x,proc_y,proc_z,contains_output,");
+    printf("model_output_0,model_output_1,model_output_2,output_class\n");
+
+    for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
+        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+
+        for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
+            flash_log_row_t *row = &flash_log_buffer[j];
+
+            if (row->row_start_marker != FLASH_LOG_ROW_START_MARKER) {
+                // End of log
+                if (i + j < num_rows) {
+                    printf("End of log reached early, corrupted log?. Marker is 0x%x\n", row->row_start_marker);
+                }
+                return FLASH_LOG_OK;
+            }
+
+            printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,",
+                   row->unproc_x, row->unproc_y, row->unproc_z,
+                   row->lowpass_filtered_x, row->lowpass_filtered_y, row->lowpass_filtered_z,
+                   row->proc_x, row->proc_y, row->proc_z,
+                   row->contains_output);
+
+            for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
+                printf("%f,", row->model_output[k]);
+            }
+
+            printf("%d\n", row->output_class);
+        }
+
+        readAddress += sizeof(flash_log_buffer);
+    }
+
+    return FLASH_LOG_OK;
 }

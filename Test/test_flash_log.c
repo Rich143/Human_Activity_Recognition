@@ -166,7 +166,7 @@ void test_single_write() {
         .contains_output = 1,
     };
 
-    nor_flash_write_ExpectWithArrayAndReturn(0, &expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
+    nor_flash_write_ExpectWithArrayAndReturn(0, (uint8_t *)&expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
 
     TEST_FLASH_LOG_OK(flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, 1));
 }
@@ -391,4 +391,25 @@ void test_recover_log_pointer_greater_than_buffer_size() {
     uint32_t numLoggedRows = flash_log_get_num_log_entries();
 
     TEST_ASSERT_EQUAL_UINT32(testFlashNumRows - 10, numLoggedRows);
+}
+
+#define RUN_PRINT_TESTS 0
+
+void test_print_log_csv() {
+#if RUN_PRINT_TESTS
+    const uint32_t testFlashNumRows = 128;
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(testFlashNumRows);
+
+    for (uint32_t i = 0; i < testFlashNumRows - 10; i += 2) {
+        get_expected_rows_double_write(testLogInputData,
+                                       &gTestExpectedRows[i]);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    flash_log_print_csv();
+#endif
 }

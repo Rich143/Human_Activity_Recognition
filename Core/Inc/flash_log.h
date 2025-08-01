@@ -35,4 +35,6 @@ flash_log_status_t flash_log_recover_log_pointer(void);
 
 uint32_t flash_log_get_num_log_entries(void);
 
+flash_log_status_t flash_log_print_csv();
+
 #endif /* FLASH_LOG_H */
