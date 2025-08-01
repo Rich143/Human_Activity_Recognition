@@ -1,3 +1,4 @@
+#include "High_Level/nor_flash.h"
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
 #include "build/test/mocks/test_flash_log/mock_nor_flash.h"
@@ -40,7 +41,7 @@ typedef struct {
     uint32_t output_class;
 } test_log_input_data_t;
 
-const uint32_t test_flash_log_max_num_saved_rows = 1000;
+const uint32_t test_flash_log_max_num_saved_rows = 10000;
 
 test_log_input_data_t testLogInputData;
 flash_log_row_t *gTestExpectedRows;
@@ -391,6 +392,74 @@ void test_recover_log_pointer_greater_than_buffer_size() {
     uint32_t numLoggedRows = flash_log_get_num_log_entries();
 
     TEST_ASSERT_EQUAL_UINT32(testFlashNumRows - 10, numLoggedRows);
+}
+
+void test_clear_logs_single_sector() {
+    const uint32_t testFlashNumRows = 128;
+
+    const uint32_t testFlashRowsFilled = testFlashNumRows - 10;
+
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(testFlashNumRows);
+
+    for (uint32_t i = 0; i < testFlashRowsFilled; i += 2) {
+        get_expected_rows_double_write(testLogInputData,
+                                       &gTestExpectedRows[i]);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    uint32_t numLoggedRows = flash_log_get_num_log_entries();
+
+    TEST_ASSERT_EQUAL_UINT32(testFlashRowsFilled, numLoggedRows);
+
+    nor_flash_erase_sector_ExpectAndReturn(0, BSP_ERROR_NONE);
+
+    // Clear the logs
+    TEST_FLASH_LOG_OK(flash_log_clear_logs());
+
+    // Verify that the logs are cleared
+    numLoggedRows = flash_log_get_num_log_entries();
+    TEST_ASSERT_EQUAL_UINT32(0, numLoggedRows);
+}
+
+void test_clear_logs_multiple_sectors() {
+    const uint32_t testFlashNumSectorsFilled = 5;
+
+    const uint32_t testFlashNumRows
+        = NOR_FLASH_SECTOR_SIZE * testFlashNumSectorsFilled /
+        sizeof(flash_log_row_t);
+
+    const uint32_t testFlashRowsFilled = testFlashNumRows - 10;
+
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(testFlashNumRows);
+
+    for (uint32_t i = 0; i < testFlashRowsFilled; i += 2) {
+        get_expected_rows_double_write(testLogInputData,
+                                       &gTestExpectedRows[i]);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    uint32_t numLoggedRows = flash_log_get_num_log_entries();
+
+    TEST_ASSERT_EQUAL_UINT32(testFlashRowsFilled, numLoggedRows);
+
+    for (uint32_t i = 0; i < testFlashNumSectorsFilled; i++) {
+        nor_flash_erase_sector_ExpectAndReturn(i*NOR_FLASH_SECTOR_SIZE, BSP_ERROR_NONE);
+    }
+
+    // Clear the logs
+    TEST_FLASH_LOG_OK(flash_log_clear_logs());
+
+    // Verify that the logs are cleared
+    numLoggedRows = flash_log_get_num_log_entries();
+    TEST_ASSERT_EQUAL_UINT32(0, numLoggedRows);
 }
 
 #define RUN_PRINT_TESTS 0

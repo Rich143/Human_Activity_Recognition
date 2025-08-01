@@ -10,7 +10,8 @@
 
 #include <stdint.h>
 
-#define NOR_FLASH_SIZE (512*1024*1024/8) /* 512 Mbits => 64MBytes        */
+#define NOR_FLASH_SIZE         (uint32_t)(512*1024*1024/8) /* 512 Mbits => 64MBytes        */
+#define NOR_FLASH_SECTOR_SIZE  (uint32_t)(64 * 1024)       /* 1024 sectors of 64KBytes     */
 
 typedef struct
 {

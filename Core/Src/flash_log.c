@@ -221,3 +221,25 @@ flash_log_status_t flash_log_print_csv() {
 
     return FLASH_LOG_OK;
 }
+
+uint32_t ceil_div(uint32_t a, uint32_t b) {
+    return (a + b - 1) / b;
+}
+
+flash_log_status_t flash_log_clear_logs() {
+    if (flash_log_num_rows == 0) {
+        return FLASH_LOG_OK;
+    }
+
+    uint32_t numSectors = ceil_div(flash_log_num_rows * FLASH_LOG_ROW_SIZE, NOR_FLASH_SECTOR_SIZE);
+
+    uint32_t eraseAddress = 0;
+    for (uint32_t i = 0; i < numSectors; i++) {
+        nor_flash_erase_sector(eraseAddress);
+        eraseAddress += NOR_FLASH_SECTOR_SIZE;
+    }
+
+    flash_log_num_rows = 0;
+
+    return FLASH_LOG_OK;
+}
