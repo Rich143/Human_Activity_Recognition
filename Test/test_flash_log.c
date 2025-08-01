@@ -262,6 +262,29 @@ flash_log_row_t * get_expected_rows_double_write(test_log_input_data_t *testLogI
     return testExpectedRows;
 }
 
+int32_t print_rows_from_write(uint32_t writeAddress, uint8_t* pBuffer, uint32_t size, int cmock_num_calls) {
+    flash_log_row_t *rows = (flash_log_row_t*)pBuffer;
+
+    uint32_t num_rows = size / sizeof(flash_log_row_t);
+
+    for (uint32_t i = 0; i < num_rows; i++) {
+        printf("Row %d\n", i);
+        printf("Header: 0x%X\n", rows[i].row_start_marker);
+        printf("Unproc: %f, %f, %f\n", rows[i].unproc_x, rows[i].unproc_y, rows[i].unproc_z);
+        printf("Filtered: %f, %f, %f\n", rows[i].lowpass_filtered_x, rows[i].lowpass_filtered_y, rows[i].lowpass_filtered_z);
+        printf("AI Input: %f, %f, %f\n", rows[i].proc_x, rows[i].proc_y, rows[i].proc_z);
+        printf("Model Output: %f, %f, %f, %f\n", rows[i].model_output[0], rows[i].model_output[1], rows[i].model_output[2], rows[i].model_output[3]);
+        printf("Output Class: %d\n", rows[i].output_class);
+        printf("Contains Output: %d\n", rows[i].contains_output);
+        printf("\n\n\n");
+    }
+
+    return BSP_ERROR_NONE;
+}
+// Debug Code stubs
+/*nor_flash_write_Stub(print_rows_from_write);*/
+/*print_rows_from_write(0, (uint8_t *)expectedRows, 2 * sizeof(flash_log_row_t), 0);*/
+
 void test_double_write() {
     test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
 
@@ -270,15 +293,9 @@ void test_double_write() {
     flash_log_row_t *expectedRows = get_expected_rows_double_write(testLogInputData, gTestExpectedRows);
 
     nor_flash_write_ExpectWithArrayAndReturn(0,
-                                             (uint8_t *)&expectedRows[0],
-                                             sizeof(flash_log_row_t),
-                                             sizeof(flash_log_row_t),
-                                             BSP_ERROR_NONE);
-
-    nor_flash_write_ExpectWithArrayAndReturn(sizeof(flash_log_row_t),
-                                             (uint8_t *)&expectedRows[1],
-                                             sizeof(flash_log_row_t),
-                                             sizeof(flash_log_row_t),
+                                             (uint8_t *)expectedRows,
+                                             2 * sizeof(flash_log_row_t),
+                                             2 * sizeof(flash_log_row_t),
                                              BSP_ERROR_NONE);
 
     TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
@@ -299,14 +316,9 @@ void test_multiple_double_writes() {
         uint32_t expectedAddress = i * sizeof(flash_log_row_t);
 
         nor_flash_write_ExpectWithArrayAndReturn(expectedAddress,
-                                                 (uint8_t *)&expectedRows[0],
-                                                 sizeof(flash_log_row_t),
-                                                 sizeof(flash_log_row_t),
-                                                 BSP_ERROR_NONE);
-        nor_flash_write_ExpectWithArrayAndReturn(expectedAddress + sizeof(flash_log_row_t),
-                                                 (uint8_t *)&expectedRows[1],
-                                                 sizeof(flash_log_row_t),
-                                                 sizeof(flash_log_row_t),
+                                                 (uint8_t *)expectedRows,
+                                                 2 * sizeof(flash_log_row_t),
+                                                 2 * sizeof(flash_log_row_t),
                                                  BSP_ERROR_NONE);
 
         TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,

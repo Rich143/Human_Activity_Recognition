@@ -18,6 +18,7 @@ typedef enum {
     FLASH_LOG_OK = 0,
     FLASH_LOG_FULL,
     FLASH_LOG_CONFIG_ERROR,
+    FLASH_LOG_PARAM_ERROR,
     FLASH_LOG_ERROR,
 } flash_log_status_t;
 

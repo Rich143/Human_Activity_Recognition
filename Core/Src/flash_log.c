@@ -25,10 +25,16 @@ static_assert(sizeof(flash_log_row_t) == FLASH_LOG_ROW_SIZE,
 #define CONFIG_MAX_SAVED_ROWS (NOR_FLASH_SIZE / FLASH_LOG_ROW_SIZE)
 
 flash_log_row_t flash_log_buffer[FLASH_LOG_BUFFER_NUM_ROWS];
+uint32_t flash_log_num_buffered_rows;
 uint32_t flash_log_num_rows;
 uint32_t flash_log_max_saved_rows;
 
 flash_log_status_t flash_log_init(uint32_t max_num_saved_samples) {
+    int rc = nor_flash_init();
+    if (rc != 0) {
+        return FLASH_LOG_ERROR;
+    }
+
     if (max_num_saved_samples > CONFIG_MAX_SAVED_ROWS) {
         return FLASH_LOG_CONFIG_ERROR;
     }
@@ -40,11 +46,49 @@ flash_log_status_t flash_log_init(uint32_t max_num_saved_samples) {
         return status;
     }
 
-    return nor_flash_init();
+    flash_log_num_buffered_rows = 0;
+
+    return FLASH_LOG_OK;
 }
 
-uint32_t get_flash_log_write_address(void) {
+flash_log_row_t *get_row_buffer() {
+    if (flash_log_num_buffered_rows >= FLASH_LOG_BUFFER_NUM_ROWS) {
+        return NULL;
+    }
+
+    flash_log_row_t *row = &flash_log_buffer[flash_log_num_buffered_rows];
+
+    flash_log_num_buffered_rows++;
+
+    return row;
+}
+
+uint32_t get_flash_log_write_address() {
     return flash_log_num_rows * sizeof(flash_log_row_t);
+}
+
+flash_log_status_t flush_row_buffer() {
+    if (flash_log_num_buffered_rows == 0) {
+        return FLASH_LOG_OK;
+    }
+
+    if (flash_log_num_rows + flash_log_num_buffered_rows > flash_log_max_saved_rows) {
+        return FLASH_LOG_FULL;
+    }
+
+    uint32_t writeAddress = get_flash_log_write_address();
+
+    int32_t rc = nor_flash_write(writeAddress,
+                                 (uint8_t *)&flash_log_buffer,
+                                 FLASH_LOG_ROW_SIZE * flash_log_num_buffered_rows);
+    if (rc != 0) {
+        return FLASH_LOG_ERROR;
+    }
+
+    flash_log_num_rows += flash_log_num_buffered_rows;
+    flash_log_num_buffered_rows = 0;
+
+    return FLASH_LOG_OK;
 }
 
 flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
@@ -54,56 +98,52 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
                                           uint32_t output_class,
                                           int window_size)
 {
-    flash_log_row_t row;
+
+    if (window_size > FLASH_LOG_BUFFER_NUM_ROWS) {
+        return FLASH_LOG_PARAM_ERROR;
+    }
 
     for (int i = 0; i < window_size; i++) {
-        if (flash_log_num_rows >= flash_log_max_saved_rows) {
-            return FLASH_LOG_FULL;
-        }
-
-        row.row_start_marker = FLASH_LOG_ROW_START_MARKER;
-
-        row.unproc_x = unproc->x[i];
-        row.unproc_y = unproc->y[i];
-        row.unproc_z = unproc->z[i];
-
-        row.lowpass_filtered_x = lowpass_filtered->x[i];
-        row.lowpass_filtered_y = lowpass_filtered->y[i];
-        row.lowpass_filtered_z = lowpass_filtered->z[i];
-
-        row.proc_x = AI_INPUT_GET_X(proc->data_array, i);
-        row.proc_y = AI_INPUT_GET_Y(proc->data_array, i);
-        row.proc_z = AI_INPUT_GET_Z(proc->data_array, i);
-
-        if (i == (window_size - 1)) {
-            row.contains_output = 1;
-
-            for (int j = 0; j < AI_OUTPUT_CHANNEL; j++) {
-                row.model_output[j] = model_output[j];
-            }
-
-            row.output_class = output_class;
-        } else {
-            for (int j = 0; j < AI_OUTPUT_CHANNEL; j++) {
-                row.model_output[j] = 0;
-            }
-
-            row.output_class = 0;
-
-            row.contains_output = 0;
-        }
-
-        uint32_t writeAddress = get_flash_log_write_address();
-
-        int32_t rc = nor_flash_write(writeAddress, (uint8_t *)&row, FLASH_LOG_ROW_SIZE);
-        if (rc != 0) {
+        flash_log_row_t *row = get_row_buffer();
+        if (row == NULL) {
             return FLASH_LOG_ERROR;
         }
 
-        flash_log_num_rows++;
+        row->row_start_marker = FLASH_LOG_ROW_START_MARKER;
+
+        row->unproc_x = unproc->x[i];
+        row->unproc_y = unproc->y[i];
+        row->unproc_z = unproc->z[i];
+
+        row->lowpass_filtered_x = lowpass_filtered->x[i];
+        row->lowpass_filtered_y = lowpass_filtered->y[i];
+        row->lowpass_filtered_z = lowpass_filtered->z[i];
+
+        row->proc_x = AI_INPUT_GET_X(proc->data_array, i);
+        row->proc_y = AI_INPUT_GET_Y(proc->data_array, i);
+        row->proc_z = AI_INPUT_GET_Z(proc->data_array, i);
+
+        if (i == (window_size - 1)) {
+            row->contains_output = 1;
+
+            for (int j = 0; j < AI_OUTPUT_CHANNEL; j++) {
+                row->model_output[j] = model_output[j];
+            }
+
+            row->output_class = output_class;
+        } else {
+            for (int j = 0; j < AI_OUTPUT_CHANNEL; j++) {
+                row->model_output[j] = 0;
+            }
+
+            row->output_class = 0;
+
+            row->contains_output = 0;
+        }
+
     }
 
-    return FLASH_LOG_OK;
+    return flush_row_buffer();
 }
 
 flash_log_status_t flash_log_recover_log_pointer() {
