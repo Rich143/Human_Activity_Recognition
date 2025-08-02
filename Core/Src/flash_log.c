@@ -198,12 +198,12 @@ flash_log_status_t flash_log_print_csv() {
             if (row->row_start_marker != FLASH_LOG_ROW_START_MARKER) {
                 // End of log
                 if (i + j < num_rows) {
-                    printf("End of log reached early, corrupted log?. Marker is 0x%x\n", row->row_start_marker);
+                    printf("End of log reached early, corrupted log?. Marker is 0x%lx\n", row->row_start_marker);
                 }
                 return FLASH_LOG_OK;
             }
 
-            printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,",
+            printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%lu,",
                    row->unproc_x, row->unproc_y, row->unproc_z,
                    row->lowpass_filtered_x, row->lowpass_filtered_y, row->lowpass_filtered_z,
                    row->proc_x, row->proc_y, row->proc_z,
@@ -213,7 +213,7 @@ flash_log_status_t flash_log_print_csv() {
                 printf("%f,", row->model_output[k]);
             }
 
-            printf("%d\n", row->output_class);
+            printf("%lu\n", row->output_class);
         }
 
         readAddress += sizeof(flash_log_buffer);

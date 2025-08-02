@@ -58,8 +58,10 @@
 #include "network_data.h"
 
 /* USER CODE BEGIN includes */
+#include "b-u585i-iot02a-bsp/b_u585i_iot02a.h"
 #include "imu_manager.h"
 #include "preprocess.h"
+#include "flash_log.h"
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
 #include "ai_output_data_type.h"
@@ -176,6 +178,14 @@ static int ai_run(void)
 }
 
 /* USER CODE BEGIN 2 */
+typedef struct {
+    accel_data_t *input;
+    accel_data_t *filtered;
+    ai_input_data_t *network_input;
+    float *model_output;
+    uint32_t output_class;
+} log_data_t;
+
 float x_in[IMU_WINDOW_SIZE];
 float y_in[IMU_WINDOW_SIZE];
 float z_in[IMU_WINDOW_SIZE];
@@ -202,6 +212,8 @@ preprocess_t preprocess;
 
 ai_input_data_t network_input_buffer;
 
+log_data_t log_data;
+
 void print_imu_csv(const accel_data_t *unproc,
                    const accel_data_t *lpf,
                    const ai_input_data_t *proc,
@@ -226,7 +238,8 @@ ai_input_data_t *get_network_input_buffer(ai_i8* data[]) {
     return &network_input_buffer;
 }
 
-preprocess_status_t acquire_and_process_data(ai_i8* data[])
+preprocess_status_t acquire_and_process_data(ai_i8* data[],
+                                             log_data_t *log_data)
 {
     /*printf("Acquiring window\n");*/
 
@@ -264,6 +277,10 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[])
 
     /*print_imu_csv(&input, &scratch, output, IMU_WINDOW_SIZE);*/
 
+    log_data->input = &input;
+    log_data->filtered = &scratch;
+    log_data->network_input = output;
+
     return PREPROCESS_STATUS_OK;
 }
 
@@ -278,7 +295,7 @@ int get_max_value(float *data_array, int len) {
     return max_idx;
 }
 
-int post_process(ai_i8* data[])
+int post_process(ai_i8* data[], log_data_t *log_data)
 {
     float *data_array = (float *)data[0];
 
@@ -304,6 +321,9 @@ int post_process(ai_i8* data[])
             printf("Unknown\n");
             break;
     }
+
+    log_data->model_output = data_array;
+    log_data->output_class = max_idx;
 
     return 0;
 }
@@ -336,14 +356,31 @@ void MX_X_CUBE_AI_Process(void)
   if (network) {
 
       do {
+          BSP_LED_Toggle(LED_RED);
+
           /* 1 - acquire and pre-process input data */
-          preprocess_status_t status = acquire_and_process_data(data_ins);
+          preprocess_status_t status
+              = acquire_and_process_data(data_ins, &log_data);
+
           /* 2 - process the data - call inference engine */
           if (status == PREPROCESS_STATUS_OK) {
               res = ai_run();
               /* 3- post-process the predictions */
               if (res == 0) {
-                  res = post_process(data_outs);
+                  res = post_process(data_outs, &log_data);
+
+                  flash_log_status_t status = flash_log_write_window(
+                      log_data.input,
+                      log_data.filtered,
+                      log_data.network_input,
+                      log_data.model_output,
+                      log_data.output_class,
+                      IMU_WINDOW_SIZE);
+
+                  if (status != FLASH_LOG_OK) {
+                      printf("Failed to write window to flash: %d\n", status);
+                      while(1);
+                  }
               }
           } else if (status != PREPROCESS_STATUS_ERROR_BUFFERING) {
               res = status;

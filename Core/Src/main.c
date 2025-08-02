@@ -22,9 +22,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_motion_sensors.h"
 #include "imu_manager.h"
-#include <stdio.h>
+#include "buttons.h"
+#include "flash_log.h"
+#include "stm32u5xx_hal.h"
+#include "stm32u5xx_hal_gpio.h"
 
 /* USER CODE END Includes */
 
@@ -35,7 +40,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define CONFIG_MAX_SAVED_ROWS 1000000
+#define CONFIG_FLASH_DUMP_WAIT_TIME_MS 3000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,7 +94,70 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void print_logs() {
+  printf("Printing Flash logs as csv...\n\n");
 
+  flash_log_status_t status = flash_log_print_csv();
+
+  if (status == FLASH_LOG_OK) {
+    printf("Done\n\n");
+  } else {
+    printf("Error printing logs\n\n");
+  }
+}
+
+void clear_logs() {
+  printf("Clearing Flash logs...\n\n");
+
+  flash_log_status_t status = flash_log_clear_logs();
+
+  if (status == FLASH_LOG_OK) {
+    printf("Logs cleared\n\n");
+  } else {
+    printf("Error clearing logs\n\n");
+  }
+}
+
+void wait_clear_logs() {
+  uint32_t startTime = HAL_GetTick();
+  bool clearLogs = false;
+
+  while (HAL_GetTick() - startTime < CONFIG_FLASH_DUMP_WAIT_TIME_MS) {
+    if (button_user_pressed()) {
+      printf("OK.\n");
+
+      HAL_Delay(2000);
+
+      clearLogs = true;
+      break;
+    }
+  }
+
+  print_logs();
+
+  if (clearLogs) {
+    clear_logs();
+  }
+}
+
+void check_log_print_clear() {
+  printf("Press user button to dump logs...\n");
+
+  uint32_t startTime = HAL_GetTick();
+
+  while (HAL_GetTick() - startTime < CONFIG_FLASH_DUMP_WAIT_TIME_MS) {
+    if (button_user_pressed()) {
+      printf("OK.\n");
+
+      HAL_Delay(2000);
+
+      printf("Press user button to also clear logs...\n");
+      wait_clear_logs();
+      break;
+    }
+  }
+
+}
 /* USER CODE END 0 */
 
 /**
@@ -144,22 +213,24 @@ int main(void)
     printf("Failed to init IMU\n");
   }
 
+  flash_log_status_t flash_status = flash_log_init(CONFIG_MAX_SAVED_ROWS);
+  if (flash_status != FLASH_LOG_OK) {
+    printf("Failed to init flash log\n");
+  }
+
+  check_log_print_clear();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
 
-    /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
-
-    /*HAL_UART_Transmit(&huart1, (uint8_t*) "Hello World\n", 12, 1000);*/
-
-    HAL_GPIO_TogglePin(GPIOH, LED_RED_Pin);
-    HAL_Delay(100);
     /* USER CODE END WHILE */
 
-  MX_X_CUBE_AI_Process();
+    MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
