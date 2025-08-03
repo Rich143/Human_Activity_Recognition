@@ -215,6 +215,34 @@ ai_input_data_t network_input_buffer;
 
 log_data_t log_data;
 
+float log_data_array[AI_NETWORK_IN_1_HEIGHT][AI_NETWORK_IN_1_WIDTH][AI_NETWORK_IN_1_CHANNEL];
+
+// Need to save a copy of network input for logging, seems like NN model reuses
+// input buffer for model output
+ai_input_data_t log_model_input = { .data_array = log_data_array };
+
+void print_imu_csv_2(const accel_data_t *unproc,
+                   const accel_data_t *lpf,
+                   const ai_input_data_t *proc,
+                   const float *model_output,
+                   uint32_t output_class,
+                   int window_size) {
+    for (int i = 0; i < window_size; i++) {
+        printf("%.6f,%.6f,%.6f,", unproc->x[i], unproc->y[i], unproc->z[i]);
+        printf("%.6f,%.6f,%.6f,", lpf->x[i], lpf->y[i], lpf->z[i]);
+        printf("%.6f,%.6f,%.6f,",
+               AI_INPUT_GET_X(proc->data_array, i),
+               AI_INPUT_GET_Y(proc->data_array, i),
+               AI_INPUT_GET_Z(proc->data_array, i));
+
+        for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
+            printf("%f,", model_output[k]);
+        }
+
+        printf("%lu\n", output_class);
+    }
+}
+
 void print_imu_csv(const accel_data_t *unproc,
                    const accel_data_t *lpf,
                    const ai_input_data_t *proc,
@@ -226,6 +254,16 @@ void print_imu_csv(const accel_data_t *unproc,
                AI_INPUT_GET_X(proc->data_array, i),
                AI_INPUT_GET_Y(proc->data_array, i),
                AI_INPUT_GET_Z(proc->data_array, i));
+    }
+}
+
+void save_model_input_data(ai_input_data_t *input, ai_input_data_t *saved, int
+                           window_size)
+{
+    for (int i = 0; i < window_size; i++) {
+        AI_INPUT_GET_X(saved->data_array, i) = AI_INPUT_GET_X(input->data_array, i);
+        AI_INPUT_GET_Y(saved->data_array, i) = AI_INPUT_GET_Y(input->data_array, i);
+        AI_INPUT_GET_Z(saved->data_array, i) = AI_INPUT_GET_Z(input->data_array, i);
     }
 }
 
@@ -278,9 +316,12 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[],
 
     /*print_imu_csv(&input, &scratch, output, IMU_WINDOW_SIZE);*/
 
+    save_model_input_data(output, &log_model_input,
+                          IMU_WINDOW_SIZE);
+
     log_data->input = &input;
     log_data->filtered = &scratch;
-    log_data->network_input = output;
+    log_data->network_input = &log_model_input;
 
     return PREPROCESS_STATUS_OK;
 }
@@ -384,6 +425,12 @@ void MX_X_CUBE_AI_Process(void)
                       while(1);
                   }
 #endif
+                  /*print_imu_csv_2(log_data.input,*/
+                      /*log_data.filtered,*/
+                      /*log_data.network_input,*/
+                      /*log_data.model_output,*/
+                      /*log_data.output_class,*/
+                      /*IMU_WINDOW_SIZE);*/
               }
           } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
               // buffering, continue

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "config.h"
 #include "flash_log.h"
 #include "flash_log_internal.h"
 
