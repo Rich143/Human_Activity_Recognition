@@ -93,6 +93,7 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
                                             ai_input_data_t *output)
 {
     preprocess_status_t status;
+    bool buffering = false;
 
     /// TODO: verify scratch buffer length
 
@@ -122,6 +123,8 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
         float32_t delayed_z;
         status = get_delayed_signal(preprocess, &delayed_x, &delayed_y, &delayed_z);
         if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
+            buffering = true;
+
             // Keep pushing the rest of the signal, but don't process it
             continue;
         } else if (status != PREPROCESS_STATUS_OK) {
@@ -173,5 +176,9 @@ preprocess_status_t gravity_suppress_rotate(preprocess_t *preprocess,
             = dyn_z * cos_theta + (v_x * dyn_y - v_y * dyn_x) * sin_theta;
     }
 
-    return PREPROCESS_STATUS_OK;
+    if (buffering) {
+        return PREPROCESS_STATUS_ERROR_BUFFERING;
+    } else {
+        return PREPROCESS_STATUS_OK;
+    }
 }

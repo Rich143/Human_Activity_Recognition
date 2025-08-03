@@ -7,10 +7,13 @@
 
 #include "imu_manager.h"
 #include "accel_data_type.h"
+#include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "stm32u5xx_hal.h"
+#include "config.h"
 
 #define IMU_SAMPLING_PERIOD_MS (1000 / IMU_SAMPLING_FREQUENCY_HZ)
 
+#if !LOAD_IMU_DATA_FROM_FILE
 int imu_manager_init(void) {
   int32_t status = BSP_ERROR_NONE;
 
@@ -55,3 +58,40 @@ int imu_manager_read_window(accel_data_t *window) {
 
   return status;
 }
+
+#else
+
+#include "Recorded_Data/walking_capture_input.h"
+#include <stdio.h>
+
+int imu_manager_init(void) {
+  printf("****\nUsing Recorded Data!!!!\n****\n");
+  return BSP_ERROR_NONE;
+}
+
+int imu_manager_read_window(accel_data_t *window)
+{
+  static uint32_t read_idx = 0;
+  uint32_t sample_time = 0;
+
+  if (read_idx + IMU_WINDOW_SIZE > WALKING_CAPTURE_INPUT_LEN) {
+    printf("****\nEnd of Recorded Data\n****\n");
+    return BSP_ERROR_COMPONENT_FAILURE;
+  }
+
+  for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
+    sample_time = HAL_GetTick();
+
+    window->x[i] = walking_capture_input_x[read_idx + i];
+    window->y[i] = walking_capture_input_y[read_idx + i];
+    window->z[i] = walking_capture_input_z[read_idx + i];
+
+    /*HAL_Delay(IMU_SAMPLING_PERIOD_MS - (HAL_GetTick() - sample_time));*/
+  }
+
+  read_idx += IMU_WINDOW_SIZE;
+
+  return BSP_ERROR_NONE;
+}
+
+#endif

@@ -65,6 +65,7 @@
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
 #include "ai_output_data_type.h"
+#include "config.h"
 #include <assert.h>
 _Static_assert(IMU_WINDOW_SIZE == AI_NETWORK_IN_1_HEIGHT, "IMU window size must match network input height");
 /* USER CODE END includes */
@@ -369,6 +370,7 @@ void MX_X_CUBE_AI_Process(void)
               if (res == 0) {
                   res = post_process(data_outs, &log_data);
 
+#if !LOAD_IMU_DATA_FROM_FILE
                   flash_log_status_t status = flash_log_write_window(
                       log_data.input,
                       log_data.filtered,
@@ -381,8 +383,12 @@ void MX_X_CUBE_AI_Process(void)
                       printf("Failed to write window to flash: %d\n", status);
                       while(1);
                   }
+#endif
               }
-          } else if (status != PREPROCESS_STATUS_ERROR_BUFFERING) {
+          } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
+              // buffering, continue
+              res = 0;
+          } else {
               res = status;
           }
       } while (res==0);

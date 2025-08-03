@@ -30,6 +30,7 @@
 #include "flash_log.h"
 #include "stm32u5xx_hal.h"
 #include "stm32u5xx_hal_gpio.h"
+#include "config.h"
 
 /* USER CODE END Includes */
 
@@ -40,8 +41,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CONFIG_MAX_SAVED_ROWS 1000000
-#define CONFIG_FLASH_DUMP_WAIT_TIME_MS 3000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -218,7 +217,9 @@ int main(void)
     printf("Failed to init flash log\n");
   }
 
+#if !LOAD_IMU_DATA_FROM_FILE
   check_log_print_clear();
+#endif
 
   /* USER CODE END 2 */
 
