@@ -217,7 +217,7 @@ int main(void)
     printf("Failed to init flash log\n");
   }
 
-#if !LOAD_IMU_DATA_FROM_FILE
+#if LOGGING_ENABLED
   check_log_print_clear();
 #endif
 
@@ -768,7 +768,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 230400;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;

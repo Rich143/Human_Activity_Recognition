@@ -182,6 +182,7 @@ uint32_t flash_log_get_num_log_entries() {
 }
 
 flash_log_status_t flash_log_print_csv() {
+#if LOG_PRINT_CSV
     uint32_t readAddress = 0;
     uint32_t num_rows = flash_log_get_num_log_entries();
 
@@ -218,6 +219,7 @@ flash_log_status_t flash_log_print_csv() {
 
         readAddress += sizeof(flash_log_buffer);
     }
+#endif
 
     return FLASH_LOG_OK;
 }

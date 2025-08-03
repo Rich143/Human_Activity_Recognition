@@ -1,6 +1,6 @@
 Neural Network Tools for STM32 family v1.7.0 (stm.ai v8.1.0-19520)
-Created date          : 2025-07-16 20:03:19
-Parameters            : generate --name network -m /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/pamap2_ign_24_window_grav_rot_sup_2025_06_20_19_55_34/pamap2_ign_24_window_grav_rot_sup.h5 --type keras --compression none --verbosity 1 --workspace /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace119608760975854212110083351358210700 --output /Users/richardmatthews/.stm32cubemx/network_output --allocate-inputs --series stm32u5 --allocate-outputs
+Created date          : 2025-08-03 16:21:50
+Parameters            : generate --name network -m /Users/richardmatthews/Documents/Programming/ST-AI/HAR-Project/HAR/NN_Models/pamap2_ign_24_window_grav_rot_sup_2025_06_20_19_55_34/pamap2_ign_24_window_grav_rot_sup.h5 --type keras --compression none --verbosity 1 --workspace /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace24665445960829176652469744639544385 --output /Users/richardmatthews/.stm32cubemx/network_output --allocate-inputs --series stm32u5 --allocate-outputs
 
 Exec/report summary (generate)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ compression        :   none
 options            :   allocate-inputs, allocate-outputs                                                                                                                                         
 optimization       :   balanced                                                                                                                                                                  
 target/series      :   stm32u5                                                                                                                                                                   
-workspace dir      :   /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace119608760975854212110083351358210700                                                                       
+workspace dir      :   /var/folders/nr/kyqf2x512c7c496t76xkf0xm0000gn/T/mxAI_workspace24665445960829176652469744639544385                                                                        
 output dir         :   /Users/richardmatthews/.stm32cubemx/network_output                                                                                                                        
 model_fmt          :   float                                                                                                                                                                     
 model_name         :   pamap2_ign_24_window_grav_rot_sup                                                                                                                                         

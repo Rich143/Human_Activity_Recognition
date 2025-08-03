@@ -125,10 +125,10 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="Src/nor_flash.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry excluding="CMSIS-DSP/Source/WindowFunctions|CMSIS-DSP/Source/TransformFunctions|CMSIS-DSP/Source/SVMFunctions|CMSIS-DSP/Source/StatisticsFunctions|CMSIS-DSP/Source/QuaternionMathFunctions|CMSIS-DSP/Source/MatrixFunctions|CMSIS-DSP/Source/InterpolationFunctions|CMSIS-DSP/Source/DistanceFunctions|CMSIS-DSP/Source/ControllerFunctions|CMSIS-DSP/Source/ComplexMathFunctions|CMSIS-DSP/Source/BayesFunctions|CMSIS-DSP/Ne10|CMSIS-DSP/Testing|CMSIS-DSP/Scripts|CMSIS-DSP/PythonWrapper|CMSIS-DSP/Examples|CMSIS-DSP/dsppp|CMSIS-DSP/Documentation|CMSIS-DSP/ComputeLibrary|CMSIS-DSP/cmsisdsp|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_usbpd_pwr.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_ranging_sensor.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_light_sensor.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_env_sensors.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_eeprom.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_audio.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_camera.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Recorded_Data"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-AI"/>
+						<entry excluding="Src/nor_flash.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Recorded_Data"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -248,10 +248,10 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-AI"/>
 						<entry excluding="Src/nor_flash.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry excluding="CMSIS-DSP/Source/WindowFunctions|CMSIS-DSP/Source/TransformFunctions|CMSIS-DSP/Source/SVMFunctions|CMSIS-DSP/Source/StatisticsFunctions|CMSIS-DSP/Source/QuaternionMathFunctions|CMSIS-DSP/Source/MatrixFunctions|CMSIS-DSP/Source/InterpolationFunctions|CMSIS-DSP/Source/DistanceFunctions|CMSIS-DSP/Source/ControllerFunctions|CMSIS-DSP/Source/ComplexMathFunctions|CMSIS-DSP/Source/BayesFunctions|CMSIS-DSP/Ne10|CMSIS-DSP/Testing|CMSIS-DSP/Scripts|CMSIS-DSP/PythonWrapper|CMSIS-DSP/cmsisdsp|CMSIS-DSP/Examples|CMSIS-DSP/dsppp|CMSIS-DSP/Documentation|CMSIS-DSP/ComputeLibrary|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_usbpd_pwr.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_ranging_sensor.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_light_sensor.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_env_sensors.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_eeprom.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_audio.c|Components/b-u585i-iot02a-bsp/b_u585i_iot02a_camera.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Recorded_Data"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="X-CUBE-AI"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

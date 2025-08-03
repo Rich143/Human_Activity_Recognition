@@ -370,7 +370,7 @@ void MX_X_CUBE_AI_Process(void)
               if (res == 0) {
                   res = post_process(data_outs, &log_data);
 
-#if !LOAD_IMU_DATA_FROM_FILE
+#if LOGGING_ENABLED
                   flash_log_status_t status = flash_log_write_window(
                       log_data.input,
                       log_data.filtered,
