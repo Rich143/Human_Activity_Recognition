@@ -217,9 +217,7 @@ int main(void)
     printf("Failed to init flash log\n");
   }
 
-#if LOGGING_ENABLED
   check_log_print_clear();
-#endif
 
   /* USER CODE END 2 */
 
