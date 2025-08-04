@@ -205,17 +205,22 @@ flash_log_status_t flash_log_print_csv() {
                 return FLASH_LOG_OK;
             }
 
-            printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%lu,",
+            printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,",
                    row->unproc_x, row->unproc_y, row->unproc_z,
                    row->lowpass_filtered_x, row->lowpass_filtered_y, row->lowpass_filtered_z,
-                   row->proc_x, row->proc_y, row->proc_z,
-                   row->contains_output);
+                   row->proc_x, row->proc_y, row->proc_z);
+
+#if LOG_PRINT_CSV_INCLUDE_MODEL_OUTPUT
+            printf("%lu,", row->contains_output);
 
             for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
                 printf("%f,", row->model_output[k]);
             }
 
             printf("%lu\n", row->output_class);
+#else
+            printf("\n");
+#endif
         }
 
         readAddress += sizeof(flash_log_buffer);

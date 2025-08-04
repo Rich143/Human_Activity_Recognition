@@ -341,28 +341,28 @@ int post_process(ai_i8* data[], log_data_t *log_data)
 {
     float *data_array = (float *)data[0];
 
-    printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],
-         data_array[2], data_array[3]);
+    /*printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],*/
+         /*data_array[2], data_array[3]);*/
 
     int max_idx = get_max_value(data_array, 4);
-    printf("Max index: %d, label: ", max_idx);
-    switch (max_idx) {
-        case AI_OUTPUT_DATA_TYPE_STATIONARY:
-            printf("Stationary\n");
-            break;
-        case AI_OUTPUT_DATA_TYPE_WALKING:
-            printf("Walking\n");
-            break;
-        case AI_OUTPUT_DATA_TYPE_RUNNING:
-            printf("Running\n");
-            break;
-        case AI_OUTPUT_DATA_TYPE_CYCLING:
-            printf("Cycling\n");
-            break;
-        default:
-            printf("Unknown\n");
-            break;
-    }
+    /*printf("Max index: %d, label: ", max_idx);*/
+    /*switch (max_idx) {*/
+        /*case AI_OUTPUT_DATA_TYPE_STATIONARY:*/
+            /*printf("Stationary\n");*/
+            /*break;*/
+        /*case AI_OUTPUT_DATA_TYPE_WALKING:*/
+            /*printf("Walking\n");*/
+            /*break;*/
+        /*case AI_OUTPUT_DATA_TYPE_RUNNING:*/
+            /*printf("Running\n");*/
+            /*break;*/
+        /*case AI_OUTPUT_DATA_TYPE_CYCLING:*/
+            /*printf("Cycling\n");*/
+            /*break;*/
+        /*default:*/
+            /*printf("Unknown\n");*/
+            /*break;*/
+    /*}*/
 
     log_data->model_output = data_array;
     log_data->output_class = max_idx;
@@ -425,12 +425,12 @@ void MX_X_CUBE_AI_Process(void)
                       while(1);
                   }
 #endif
-                  /*print_imu_csv_2(log_data.input,*/
-                      /*log_data.filtered,*/
-                      /*log_data.network_input,*/
-                      /*log_data.model_output,*/
-                      /*log_data.output_class,*/
-                      /*IMU_WINDOW_SIZE);*/
+                  print_imu_csv_2(log_data.input,
+                      log_data.filtered,
+                      log_data.network_input,
+                      log_data.model_output,
+                      log_data.output_class,
+                      IMU_WINDOW_SIZE);
               }
           } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
               // buffering, continue

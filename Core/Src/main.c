@@ -136,6 +136,8 @@ void wait_clear_logs() {
 
   if (clearLogs) {
     clear_logs();
+
+    HAL_Delay(3000);
   }
 }
 
@@ -212,7 +214,7 @@ int main(void)
     printf("Failed to init IMU\n");
   }
 
-  flash_log_status_t flash_status = flash_log_init(CONFIG_MAX_SAVED_ROWS);
+  flash_log_status_t flash_status = flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
   }
