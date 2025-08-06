@@ -102,12 +102,14 @@
     - ../Core/Inc
     - ../Core/Src
     - ../Drivers/CMSIS-DSP/Source/FilteringFunctions/
+    - ../Lib
   :include:
     - ../Core/Inc
     - ../Drivers/CMSIS-DSP/Include
     - ../Drivers/High_Level
     - ../Drivers/Components
     - ../Drivers
+    - ../Lib
     - HeadersToMock
   :support:
     - support
@@ -231,7 +233,7 @@
   :flag: "-l${1}"
   :path_flag: "-L ${1}"
   :system: []    # for example, you might list 'm' to grab the math library
-  :test: []
+  :test: [pthread]
   :release: []
 
 ################################################################
