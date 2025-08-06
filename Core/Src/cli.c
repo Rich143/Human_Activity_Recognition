@@ -19,11 +19,6 @@
 
 static double_buffer_state_t buffer_state;
 
-/*// ISR Writes to this, and main reads this. Needs to be volatile*/
-/*volatile int8_t readyBuffer;*/
-
-/*uint8_t current_isr_rx_buffer;*/
-
 // Only ISR writes / reads these, no protection needed
 uint32_t rx_buffer_0_ptr;
 uint32_t rx_buffer_1_ptr;
@@ -53,7 +48,7 @@ void handle_command_received() {
     if (dbuf_get_ready(&buffer_state) != NO_BUFFER_READY) {
         // Error: main is still processing last command
         printf("ERROR: CLI ISR has no free buffers\n");
-        while (1);
+        while (dbuf_get_ready(&buffer_state) != NO_BUFFER_READY);
     }
 
     // Reset buffer ptr, since main doesn't use this
