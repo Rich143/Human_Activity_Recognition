@@ -10,6 +10,7 @@
 #include "FreeRTOS_Types.h"
 #include "High_Level/uart.h"
 #include "FreeRTOS_CLI.h"
+#include "config.h"
 #include "terminal_print.h"
 #include "cli_commands.h"
 #include "double_buffer.h"
@@ -29,7 +30,15 @@ uint8_t rx_buffer_0[configCOMMAND_INT_MAX_INPUT_SIZE];
 uint8_t rx_buffer_1[configCOMMAND_INT_MAX_INPUT_SIZE];
 
 const char *prompt = "CLI > ";
+const char enable_char = 'a';
 
+static volatile uint32_t received_enable_char_count = 0;
+
+void uart_rx_cb_check_for_enable_input(uint8_t data) {
+    if (data == enable_char) {
+        received_enable_char_count++;
+    }
+}
 
 uint8_t *get_uart_rx_buffer_isr() {
     if (dbuf_get_isr_index(&buffer_state) == 0) {
@@ -122,7 +131,20 @@ cli_status_t cli_register_commands() {
     return CLI_STATUS_OK;
 }
 
+void setup_waiting_for_input() {
+    received_enable_char_count = 0;
+
+    uart_rx_cli_register_callback(uart_rx_cb_check_for_enable_input);
+
+    uart_cli_rx_start();
+
+    cli_printf("Press '%c' %d times to enable CLI...\n", enable_char,
+               CONFIG_CLI_ENABLE_KEY_PRESSES);
+}
+
 cli_status_t cli_init() {
+    setup_waiting_for_input();
+
     // We only register commands here so that unit tests can do this once and
     // only once. FreeRTOS_CLI is not able to be initialized more than once due
     // to command registration
@@ -142,9 +164,7 @@ cli_status_t cli_start() {
 
     uart_rx_cli_register_callback(uart_rx_cb);
 
-    uart_cli_rx_start();
-
-    cli_printf("%s", prompt);
+    cli_printf("\n%s", prompt);
 
     return CLI_STATUS_OK;
 }
@@ -209,29 +229,10 @@ cli_status_t cli_run() {
     return CLI_STATUS_OK;
 }
 
-static volatile bool received_input = false;
-
-void uart_rx_cb_check_for_input(uint8_t data) {
-    received_input = true;
-}
-
-bool cli_wait_for_input_to_enable(uint32_t timeout_ms) {
-    received_input = false;
-
-    cli_printf("Press any key to enable CLI...\n");
-
-    uart_rx_cli_register_callback(uart_rx_cb_check_for_input);
-
-    uart_cli_rx_start();
-
-    uint32_t start_time = HAL_GetTick();
-
-    while (HAL_GetTick() - start_time < timeout_ms) {
-        if (received_input) {
-            cli_printf("\n");
-            return true;
-        }
+bool cli_check_for_input_to_enable() {
+    if (received_enable_char_count >= CONFIG_CLI_ENABLE_KEY_PRESSES) {
+        return true;
+    } else {
+        return false;
     }
-
-    return false;
 }

@@ -150,7 +150,8 @@ int main(void)
     printf("Failed to init IMU\n");
   }
 
-  flash_log_status_t flash_status = flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
+  flash_log_status_t flash_status =
+    flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
   }
@@ -159,23 +160,6 @@ int main(void)
   if (cli_status != CLI_STATUS_OK) {
     printf("Failed to init CLI\n");
     while(1);
-  }
-
-  bool enable_cli = cli_wait_for_input_to_enable(CONFIG_CLI_ENABLE_WAIT_TIME_MS);
-  if (enable_cli) {
-    cli_status = cli_start();
-    if (cli_status != CLI_STATUS_OK) {
-      printf("Failed to start CLI\n");
-      while(1);
-    }
-
-    while(1) {
-      cli_status = cli_run();
-      if (cli_status != CLI_STATUS_OK) {
-        printf("Failed to run CLI\n");
-        while(1);
-      }
-    }
   }
 
   /* USER CODE END 2 */
@@ -187,6 +171,24 @@ int main(void)
   {
 
     /* USER CODE END WHILE */
+    // Check to see if we should start the CLI
+    // CLI is enabled if we receive any input
+    // if enabled, application code stops
+    if (cli_check_for_input_to_enable()) {
+      cli_status = cli_start();
+      if (cli_status != CLI_STATUS_OK) {
+        printf("Failed to start CLI\n");
+        while(1);
+      }
+
+      while(1) {
+        cli_status = cli_run();
+        if (cli_status != CLI_STATUS_OK) {
+          printf("Failed to run CLI\n");
+          while(1);
+        }
+      }
+    }
 
     MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */

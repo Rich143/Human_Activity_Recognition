@@ -391,60 +391,55 @@ void MX_X_CUBE_AI_Init(void)
 void MX_X_CUBE_AI_Process(void)
 {
     /* USER CODE BEGIN 6 */
-  int res = -1;
+    int res = -1;
 
-  printf("TEMPLATE - run - main loop\r\n");
+    if (network) {
+        BSP_LED_Toggle(LED_RED);
 
-  if (network) {
+        /* 1 - acquire and pre-process input data */
+        preprocess_status_t status
+            = acquire_and_process_data(data_ins, &log_data);
 
-      do {
-          BSP_LED_Toggle(LED_RED);
-
-          /* 1 - acquire and pre-process input data */
-          preprocess_status_t status
-              = acquire_and_process_data(data_ins, &log_data);
-
-          /* 2 - process the data - call inference engine */
-          if (status == PREPROCESS_STATUS_OK) {
-              res = ai_run();
-              /* 3- post-process the predictions */
-              if (res == 0) {
-                  res = post_process(data_outs, &log_data);
+        /* 2 - process the data - call inference engine */
+        if (status == PREPROCESS_STATUS_OK) {
+            res = ai_run();
+            /* 3- post-process the predictions */
+            if (res == 0) {
+                res = post_process(data_outs, &log_data);
 
 #if LOGGING_ENABLED
-                  flash_log_status_t status = flash_log_write_window(
-                      log_data.input,
-                      log_data.filtered,
-                      log_data.network_input,
-                      log_data.model_output,
-                      log_data.output_class,
-                      IMU_WINDOW_SIZE);
+                flash_log_status_t status = flash_log_write_window(
+                    log_data.input,
+                    log_data.filtered,
+                    log_data.network_input,
+                    log_data.model_output,
+                    log_data.output_class,
+                    IMU_WINDOW_SIZE);
 
-                  if (status != FLASH_LOG_OK) {
-                      printf("Failed to write window to flash: %d\n", status);
-                      while(1);
-                  }
+                if (status != FLASH_LOG_OK) {
+                    printf("Failed to write window to flash: %d\n", status);
+                    while(1);
+                }
 #endif
-                  print_imu_csv_2(log_data.input,
-                      log_data.filtered,
-                      log_data.network_input,
-                      log_data.model_output,
-                      log_data.output_class,
-                      IMU_WINDOW_SIZE);
-              }
-          } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
-              // buffering, continue
-              res = 0;
-          } else {
-              res = status;
-          }
-      } while (res==0);
-  }
+                print_imu_csv_2(log_data.input,
+                                log_data.filtered,
+                                log_data.network_input,
+                                log_data.model_output,
+                                log_data.output_class,
+                                IMU_WINDOW_SIZE);
+            }
+        } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
+            // buffering, continue
+            res = 0;
+        } else {
+            res = status;
+        }
+    }
 
-  if (res) {
-    ai_error err = {AI_ERROR_INVALID_STATE, AI_ERROR_CODE_NETWORK};
-    ai_log_err(err, "Process has FAILED");
-  }
+    if (res) {
+        ai_error err = {AI_ERROR_INVALID_STATE, AI_ERROR_CODE_NETWORK};
+        ai_log_err(err, "Process has FAILED");
+    }
     /* USER CODE END 6 */
 }
 #ifdef __cplusplus

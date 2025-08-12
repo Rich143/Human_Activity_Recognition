@@ -17,6 +17,7 @@ import serial
 import struct
 import sys
 import csv
+import time
 from dataclasses import dataclass, asdict
 from typing import Optional
 
@@ -54,7 +55,7 @@ class FlashLogRow:
         vals = struct.unpack(STRUCT_FMT, row)
         return cls(**dict(zip(FIELD_NAMES, vals)))
 
-# ---------- Stream parsing ----------
+# ---------- Helpers ----------
 def read_exact(ser: serial.Serial, n: int) -> bytes:
     out = bytearray()
     while len(out) < n:
@@ -64,39 +65,94 @@ def read_exact(ser: serial.Serial, n: int) -> bytes:
         out.extend(chunk)
     return bytes(out)
 
-def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
-    ser = serial.Serial(port, baudrate=baud, timeout=1)
-    buf = bytearray()
+def print_ascii_chunk(chunk: bytes):
+    """Print human-readable ASCII seen before binary starts (echo, prompts, etc.)."""
+    if not chunk:
+        return
+    # Keep CR/LF; drop non-ASCII
+    text = chunk.decode('ascii', errors='ignore')
+    if not text.strip():
+        return
+    # Print line by line with prefix
+    for line in text.splitlines(True):
+        if line.strip() == "":
+            continue
+        sys.stdout.write("[ASCII] " + line)
+        sys.stdout.flush()
 
+# ---------- Stream parsing ----------
+def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
+    print(f"[*] Opening {port} @ {baud} ...")
+    ser = serial.Serial(port, baudrate=baud, timeout=1)
+    print("[*] Port opened.")
+
+    # --- Enable CLI and kick off dump ---
+    ser.reset_input_buffer()
+    print("[*] Enabling CLI (sending one wake char)...")
+    ser.write(b' ')                 # any single character to enable CLI
+    ser.flush()
+    time.sleep(0.05)
+
+    cmd = b'logDump\n'              # change to b'logDump\r\n' if your CLI expects CRLF
+    print(f"[*] Sending command: {cmd!r}")
+    ser.write(cmd)
+    ser.flush()
+
+    print("[*] Waiting for first row marker 0x%08X ..." % ROW_MARKER)
+
+    buf = bytearray()
     writer = None
     csv_file = None
+    synced = False  # becomes True after we lock onto the first marker
+    rows = 0
+    last_status_print = 0.0
+
     try:
         if csv_path:
             csv_file = open(csv_path, 'w', newline='')
             writer = csv.DictWriter(csv_file, fieldnames=FIELD_NAMES[1:] + ['row_start_ok'])
             writer.writeheader()
+            print(f"[*] CSV logging to: {csv_path}")
 
-        rows = 0
         while True:
-            # Read some bytes
-            buf.extend(ser.read(4096))
-            if not buf:
-                continue
+            chunk = ser.read(4096)
+            if chunk:
+                # Show any ASCII the device prints (prompt/echo/etc.) before sync
+                if not synced:
+                    print_ascii_chunk(chunk)
+                buf.extend(chunk)
+
+            # Status ping while waiting
+            now = time.time()
+            if not synced and (now - last_status_print) > 0.5:
+                print(f"[.] still waiting for marker… buffer has {len(buf)} bytes")
+                last_status_print = now
 
             # Try to find the next marker
             start = buf.find(ROW_MARKER_LE)
             if start == -1:
-                # keep a few trailing bytes in case marker straddles
-                buf[:] = buf[-(len(ROW_MARKER_LE)-1):]
+                # keep only last 3 bytes so a split marker can straddle reads
+                if len(buf) > 3:
+                    del buf[:-3]
                 continue
 
-            # Discard leading garbage before the marker
+            # Discard leading bytes before the marker (likely ASCII/prompt)
             if start > 0:
+                discarded = bytes(buf[:start])
+                if not synced:
+                    # One more chance to print any readable prompt in the discarded region
+                    print_ascii_chunk(discarded)
+                print(f"[*] Found marker at offset {start}, discarded {start} byte(s) of preamble.")
                 del buf[:start]
 
             # Need a full row
             if len(buf) < STRUCT_SIZE:
                 continue
+
+            # We have at least one row; from this point on consider ourselves synced.
+            if not synced:
+                print("[*] Synced on first row marker.")
+                synced = True
 
             row_bytes = bytes(buf[:STRUCT_SIZE])
             del buf[:STRUCT_SIZE]
@@ -106,28 +162,34 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             row_start_ok = (row.row_start_marker == ROW_MARKER)
 
             if not row_start_ok:
-                # Rare: false positive marker due to random bytes. Resync by skipping one byte.
-                # Put back all but the first byte and continue.
-                buf[:0] = row_bytes[1:]  # push bytes (except first) back to the front
+                # False positive; resync by skipping one byte.
+                buf[:0] = row_bytes[1:]  # push bytes (except first) back
+                print("[!] Marker check failed after unpack; resyncing by 1 byte.")
                 continue
 
             # Use the row
             if writer:
                 d = asdict(row)
-                # Drop the marker in CSV (optional) and add a check flag
                 d.pop('row_start_marker', None)
                 d['row_start_ok'] = True
                 writer.writerow(d)
-            else:
-                print(row)
 
             rows += 1
+            if rows <= 5 or rows % 100 == 0:
+                # Light progress print
+                print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
+                      f"unproc=({row.unproc_x:.3f},{row.unproc_y:.3f},{row.unproc_z:.3f})")
+
             if max_rows is not None and rows >= max_rows:
+                print("[*] Reached max_rows, stopping.")
                 break
+
     finally:
         if csv_file:
             csv_file.close()
+            print("[*] CSV closed.")
         ser.close()
+        print("[*] Serial port closed. Total rows:", rows)
 
 # ---------- CLI ----------
 if __name__ == "__main__":

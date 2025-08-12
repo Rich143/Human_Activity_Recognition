@@ -20,6 +20,8 @@ typedef enum {
 cli_status_t cli_init();
 cli_status_t cli_start();
 cli_status_t cli_run();
-bool cli_wait_for_input_to_enable(uint32_t timeout_ms);
+
+/// Returns true if the CLI should be enabled
+bool cli_check_for_input_to_enable();
 
 #endif /* INC_CLI_H_ */
