@@ -31,6 +31,7 @@ void mock_cmsis_gcc() {
     __set_PRIMASK_Ignore();
 }
 
+static bool cli_initialised = false;
 
 void setUp(void)
 {
@@ -40,7 +41,11 @@ void setUp(void)
 
     uart_rx_cli_register_callback_Stub(&uart_rx_cli_register_callback_mock_cb);
 
-    TEST_CLI_OK(cli_init());
+    if (!cli_initialised) {
+        // CLI Init can only be called once (due to command registration)
+        TEST_CLI_OK(cli_init());
+        cli_initialised = true;
+    }
 
     TEST_CLI_OK(cli_start());
 }
@@ -79,5 +84,70 @@ void test2Pings(void) {
     TEST_CLI_OK(cli_run());
 
     sendPing();
+    TEST_CLI_OK(cli_run());
+}
+
+
+void expectLogClear() {
+    logClearCommand_ExpectAndReturn(NULL, 0, NULL, pdFALSE);
+    logClearCommand_IgnoreArg_pcWriteBuffer();
+    logClearCommand_IgnoreArg_xWriteBufferLen();
+    logClearCommand_IgnoreArg_pcCommandString();
+}
+
+void sendLogClear() {
+    uart_rx_cli_cb('l');
+    uart_rx_cli_cb('o');
+    uart_rx_cli_cb('g');
+    uart_rx_cli_cb('C');
+    uart_rx_cli_cb('l');
+    uart_rx_cli_cb('e');
+    uart_rx_cli_cb('a');
+    uart_rx_cli_cb('r');
+    uart_rx_cli_cb('\n');
+}
+
+void testLogClear(void) {
+    expectLogClear();
+    sendLogClear();
+    TEST_CLI_OK(cli_run());
+}
+
+void expectLogDump() {
+    logDumpCommand_ExpectAndReturn(NULL, 0, NULL, pdFALSE);
+    logDumpCommand_IgnoreArg_pcWriteBuffer();
+    logDumpCommand_IgnoreArg_xWriteBufferLen();
+    logDumpCommand_IgnoreArg_pcCommandString();
+}
+
+void sendLogDump() {
+    uart_rx_cli_cb('l');
+    uart_rx_cli_cb('o');
+    uart_rx_cli_cb('g');
+    uart_rx_cli_cb('D');
+    uart_rx_cli_cb('u');
+    uart_rx_cli_cb('m');
+    uart_rx_cli_cb('p');
+    uart_rx_cli_cb('\n');
+}
+
+void testLogDump(void) {
+    expectLogDump();
+    sendLogDump();
+    TEST_CLI_OK(cli_run());
+}
+
+void testMultipleCommands(void) {
+    expectPing();
+    expectLogClear();
+    expectLogDump();
+
+    sendPing();
+    TEST_CLI_OK(cli_run());
+
+    sendLogClear();
+    TEST_CLI_OK(cli_run());
+
+    sendLogDump();
     TEST_CLI_OK(cli_run());
 }

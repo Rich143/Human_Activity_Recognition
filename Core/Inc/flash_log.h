@@ -37,6 +37,8 @@ uint32_t flash_log_get_num_log_entries(void);
 
 flash_log_status_t flash_log_print_csv(void);
 
+flash_log_status_t flash_log_send_over_uart();
+
 flash_log_status_t flash_log_clear_logs(void);
 
 #endif /* FLASH_LOG_H */

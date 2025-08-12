@@ -31,3 +31,7 @@ void uart_cli_rx_start() {
 void uart_rx_cli_register_callback(uart_rx_cli_cb_t cb) {
     uart_rx_cli_cb = cb;
 }
+
+bool uart_send_data(uint8_t *data, uint32_t len) {
+    return HAL_UART_Transmit(&huart1, data, len, HAL_MAX_DELAY) == HAL_OK;
+}

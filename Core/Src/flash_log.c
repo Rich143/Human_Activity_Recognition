@@ -10,6 +10,7 @@
 #include "ai_output_data_type.h"
 
 #include "High_Level/nor_flash.h"
+#include "High_Level/uart.h"
 
 // 15 4 byte values, plus 4 byte marker = 16 * 4 = 64 bytes
 // This is a multiple of 256, to make it an even multiple of a sector
@@ -226,6 +227,47 @@ flash_log_status_t flash_log_print_csv() {
         readAddress += sizeof(flash_log_buffer);
     }
 #endif
+
+    return FLASH_LOG_OK;
+}
+
+flash_log_status_t send_row_over_uart(flash_log_row_t *row) {
+    bool success = uart_send_data((uint8_t *)row, sizeof(flash_log_row_t));
+
+    if (success) {
+        return FLASH_LOG_OK;
+    } else {
+        return FLASH_LOG_ERROR;
+    }
+}
+
+flash_log_status_t flash_log_send_over_uart() {
+    uint32_t readAddress = 0;
+    uint32_t num_rows = flash_log_get_num_log_entries();
+
+    for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
+        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+
+        for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
+            flash_log_row_t *row = &flash_log_buffer[j];
+
+            if (row->row_start_marker != FLASH_LOG_ROW_START_MARKER) {
+                // End of log
+                if (i + j < num_rows) {
+                    printf("End of log reached early, corrupted log?. Marker is 0x%lx\n", row->row_start_marker);
+                }
+                return FLASH_LOG_OK;
+            }
+
+            flash_log_status_t status = send_row_over_uart(row);
+            if (status != FLASH_LOG_OK) {
+                return status;
+            }
+
+        }
+
+        readAddress += sizeof(flash_log_buffer);
+    }
 
     return FLASH_LOG_OK;
 }

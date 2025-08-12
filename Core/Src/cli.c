@@ -94,6 +94,8 @@ void uart_rx_cb(uint8_t data) {
 }
 
 CLI_Definition_List_Item_t pingCommandListItem;
+CLI_Definition_List_Item_t logClearCommandListItem;
+CLI_Definition_List_Item_t logDumpCommandListItem;
 
 cli_status_t cli_register_commands() {
     BaseType_t status = FreeRTOS_CLIRegisterCommandStatic(&pingCommandDefinition,
@@ -102,10 +104,29 @@ cli_status_t cli_register_commands() {
         return CLI_STATUS_ERROR_OTHER;
     }
 
+    status = FreeRTOS_CLIRegisterCommandStatic(&logClearCommandDefinition,
+                                      &logClearCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&logDumpCommandDefinition,
+                                      &logDumpCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
     return CLI_STATUS_OK;
 }
 
 cli_status_t cli_init() {
+    // We only register commands here so that unit tests can do this once and
+    // only once. FreeRTOS_CLI is not able to be initialized more than once due
+    // to command registration
+    return cli_register_commands();
+}
+
+cli_status_t cli_start() {
     rx_buffer_0_ptr = 0;
     memset( rx_buffer_0, 0x00, configCOMMAND_INT_MAX_INPUT_SIZE );
 
@@ -118,11 +139,9 @@ cli_status_t cli_init() {
 
     uart_rx_cli_register_callback(uart_rx_cb);
 
-    return cli_register_commands();
-}
-
-cli_status_t cli_start() {
     uart_cli_rx_start();
+
+    return CLI_STATUS_OK;
 }
 
 void handle_command(uint8_t *rx_buffer) {

@@ -17,6 +17,7 @@
 
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "mock_nor_flash.h"
+#include "mock_uart.h"
 
 // Helper macros for test status checking
 #define TEST_FLASH_LOG_OK(expr) \
