@@ -31,6 +31,7 @@
 #include "stm32u5xx_hal.h"
 #include "stm32u5xx_hal_gpio.h"
 #include "config.h"
+#include "cli.h"
 
 /* USER CODE END Includes */
 
@@ -93,72 +94,7 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void print_logs() {
-  printf("Printing Flash logs as csv...\n\n");
 
-  flash_log_status_t status = flash_log_print_csv();
-
-  if (status == FLASH_LOG_OK) {
-    printf("Done\n\n");
-  } else {
-    printf("Error printing logs\n\n");
-  }
-}
-
-void clear_logs() {
-  printf("Clearing Flash logs...\n\n");
-
-  flash_log_status_t status = flash_log_clear_logs();
-
-  if (status == FLASH_LOG_OK) {
-    printf("Logs cleared\n\n");
-  } else {
-    printf("Error clearing logs\n\n");
-  }
-}
-
-void wait_clear_logs() {
-  uint32_t startTime = HAL_GetTick();
-  bool clearLogs = false;
-
-  while (HAL_GetTick() - startTime < CONFIG_FLASH_DUMP_WAIT_TIME_MS) {
-    if (button_user_pressed()) {
-      printf("OK.\n");
-
-      HAL_Delay(2000);
-
-      clearLogs = true;
-      break;
-    }
-  }
-
-  print_logs();
-
-  if (clearLogs) {
-    clear_logs();
-
-    HAL_Delay(3000);
-  }
-}
-
-void check_log_print_clear() {
-  printf("Press user button to dump logs...\n");
-
-  uint32_t startTime = HAL_GetTick();
-
-  while (HAL_GetTick() - startTime < CONFIG_FLASH_DUMP_WAIT_TIME_MS) {
-    if (button_user_pressed()) {
-      printf("OK.\n");
-
-      HAL_Delay(2000);
-
-      printf("Press user button to also clear logs...\n");
-      wait_clear_logs();
-      break;
-    }
-  }
-
-}
 /* USER CODE END 0 */
 
 /**
@@ -188,7 +124,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  setvbuf(stdout, NULL, _IONBF, 0);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -219,7 +155,28 @@ int main(void)
     printf("Failed to init flash log\n");
   }
 
-  check_log_print_clear();
+  cli_status_t cli_status = cli_init();
+  if (cli_status != CLI_STATUS_OK) {
+    printf("Failed to init CLI\n");
+    while(1);
+  }
+
+  bool enable_cli = cli_wait_for_input_to_enable(CONFIG_CLI_ENABLE_WAIT_TIME_MS);
+  if (enable_cli) {
+    cli_status = cli_start();
+    if (cli_status != CLI_STATUS_OK) {
+      printf("Failed to start CLI\n");
+      while(1);
+    }
+
+    while(1) {
+      cli_status = cli_run();
+      if (cli_status != CLI_STATUS_OK) {
+        printf("Failed to run CLI\n");
+        while(1);
+      }
+    }
+  }
 
   /* USER CODE END 2 */
 

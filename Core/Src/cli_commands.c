@@ -16,28 +16,32 @@ BaseType_t logClearCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const ch
 {
     flash_log_status_t status = flash_log_clear_logs();
     if (status == FLASH_LOG_OK) {
-        vsnprintf(pcWriteBuffer, xWriteBufferLen, "Logs cleared\n");
-        return pdFalse;
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Logs cleared\n");
+        return pdFALSE;
     } else {
-        vsnprintf(pcWriteBuffer, xWriteBufferLen, "Error clearing logs\n");
-        return pdFalse;
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Error clearing logs\n");
+        return pdFALSE;
     }
+
+    return pdFALSE;
 }
 
 BaseType_t logDumpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     flash_log_status_t status = flash_log_send_over_uart();
     if (status == FLASH_LOG_OK) {
-        vsnprintf(pcWriteBuffer, xWriteBufferLen, "Done\n");
-        return pdFalse;
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Done\n");
+        return pdFALSE;
     } else {
-        vsnprintf(pcWriteBuffer, xWriteBufferLen, "Error printing logs\n");
-        return pdFalse;
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Error printing logs\n");
+        return pdFALSE;
     }
+
+    return pdFALSE;
 }
 
 BaseType_t pingCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
-    vsnprintf(pcWriteBuffer, xWriteBufferLen, "pong\n");
-    return pdFalse;
+    snprintf(pcWriteBuffer, xWriteBufferLen, "pong\n");
+    return pdFALSE;
 }

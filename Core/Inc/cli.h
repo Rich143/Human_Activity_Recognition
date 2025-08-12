@@ -8,6 +8,9 @@
 #ifndef INC_CLI_H_
 #define INC_CLI_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 typedef enum {
     CLI_STATUS_OK = 0,
     CLI_STATUS_ERROR_NULL,
@@ -17,5 +20,6 @@ typedef enum {
 cli_status_t cli_init();
 cli_status_t cli_start();
 cli_status_t cli_run();
+bool cli_wait_for_input_to_enable(uint32_t timeout_ms);
 
 #endif /* INC_CLI_H_ */

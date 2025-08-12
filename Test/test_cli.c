@@ -4,6 +4,7 @@
 #include "mock_uart.h"
 #include "mock_cli_commands.h"
 #include "mock_cmsis_gcc.h"
+#include "mock_stm32u5xx_hal.h"
 
 #include "cli.h"
 #include "uart.h"
