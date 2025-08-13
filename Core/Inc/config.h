@@ -24,4 +24,6 @@
 
 #define CONFIG_CLI_ENABLE_KEY_PRESSES 10
 
+#define CONFIG_LOG_USE_TEST_DATA 1
+
 #endif /* INC_CONFIG_H_ */

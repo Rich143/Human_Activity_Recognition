@@ -113,6 +113,33 @@ def handle_start_not_found(buf):
 
     return buf
 
+def trim_buf_to_start(buf, start):
+    if start > 0:
+        print(f"[*] Found marker at offset {start}, discarded {start} byte(s) of preamble.")
+        del buf[:start]
+    else:
+        print("[*] Found marker at offset 0, no preamble to discard.")
+
+    return buf
+
+def pop_row_and_decode(buf):
+    row_bytes = bytes(buf[:STRUCT_SIZE])
+    del buf[:STRUCT_SIZE]
+
+    # Decode
+    row = FlashLogRow.from_bytes(row_bytes)
+    row_start_ok = (row.row_start_marker == ROW_MARKER)
+
+    return row, buf
+
+    # if row_start_ok:
+        # return row, buf
+    # else:
+        # # False positive; resync by skipping one byte.
+        # buf[:0] = row_bytes[1:]  # push bytes (except first) back
+        # print("[!] Marker check failed after unpack; resyncing by 1 byte.")
+
+
 # ---------- Stream parsing ----------
 def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
     print(f"[*] Opening {port} @ {baud} ...")
@@ -150,12 +177,6 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
 
         while True:
             read_chunk_into_buf(ser, buf)
-            # chunk = ser.read(4096)
-            # if chunk:
-                # # Show any ASCII the device prints (prompt/echo/etc.) before sync
-                # if not synced:
-                    # print_ascii_chunk(chunk)
-                # buf.extend(chunk)
 
             # Status ping while waiting
             now = time.time()
@@ -167,16 +188,9 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             start = buf.find(ROW_MARKER_LE)
             if start == -1:
                 buf = handle_start_not_found(buf)
-                # # keep only last 3 bytes so a split marker can straddle reads
-                # if len(buf) > 3:
-                    # del buf[:-3]
                 continue
 
-            # Discard leading bytes before the marker (likely ASCII/prompt)
-            if start > 0:
-                discarded = bytes(buf[:start])
-                print(f"[*] Found marker at offset {start}, discarded {start} byte(s) of preamble.")
-                del buf[:start]
+            buf = trim_buf_to_start(buf, start)
 
             # Need a full row
             if len(buf) < STRUCT_SIZE:
@@ -187,18 +201,7 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
                 print("[*] Synced on first row marker.")
                 synced = True
 
-            row_bytes = bytes(buf[:STRUCT_SIZE])
-            del buf[:STRUCT_SIZE]
-
-            # Decode
-            row = FlashLogRow.from_bytes(row_bytes)
-            row_start_ok = (row.row_start_marker == ROW_MARKER)
-
-            if not row_start_ok:
-                # False positive; resync by skipping one byte.
-                buf[:0] = row_bytes[1:]  # push bytes (except first) back
-                print("[!] Marker check failed after unpack; resyncing by 1 byte.")
-                continue
+            row, buf = pop_row_and_decode(buf)
 
             # Use the row
             if writer:
@@ -208,8 +211,7 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
                 writer.writerow(d)
 
             rows += 1
-            # if rows <= 5 or rows % 100 == 0:
-            # Light progress print
+
             print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
                   f"unproc=({row.unproc_x:.6f},{row.unproc_y:.6f},{row.unproc_z:.6f})")
 

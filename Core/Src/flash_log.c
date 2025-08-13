@@ -241,6 +241,7 @@ flash_log_status_t send_row_over_uart(flash_log_row_t *row) {
     }
 }
 
+#if CONFIG_LOG_USE_TEST_DATA == 0
 flash_log_status_t flash_log_send_over_uart() {
     uint32_t readAddress = 0;
     uint32_t num_rows = flash_log_get_num_log_entries();
@@ -271,6 +272,23 @@ flash_log_status_t flash_log_send_over_uart() {
 
     return FLASH_LOG_OK;
 }
+
+#else
+
+#include "Recorded_Data/log_test_data.h"
+
+flash_log_status_t flash_log_send_over_uart() {
+    for (uint32_t i = 0; i < LOG_TEST_DATA_NUM_ROWS; ++i) {
+        flash_log_status_t status = send_row_over_uart(&log_test_data[i]);
+        if (status != FLASH_LOG_OK) {
+            return status;
+        }
+    }
+
+    return FLASH_LOG_OK;
+}
+
+#endif
 
 uint32_t ceil_div(uint32_t a, uint32_t b) {
     return (a + b - 1) / b;

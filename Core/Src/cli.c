@@ -37,6 +37,8 @@ static volatile uint32_t received_enable_char_count = 0;
 void uart_rx_cb_check_for_enable_input(uint8_t data) {
     if (data == enable_char) {
         received_enable_char_count++;
+    } else {
+        received_enable_char_count = 0;
     }
 }
 
