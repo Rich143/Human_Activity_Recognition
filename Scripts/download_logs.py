@@ -22,6 +22,11 @@ from dataclasses import dataclass, asdict
 from typing import Optional
 
 # ---------- Struct and constants ----------
+CLI_PROMPT =  'CLI > '
+CLI_ENABLE_CODE = 'aaaaaaaaaa'
+
+CLI_PING_COMMAND = 'ping\n'
+
 ROW_MARKER = 0xBEEDFACE
 ROW_MARKER_LE = struct.pack('<I', ROW_MARKER)
 
@@ -56,15 +61,6 @@ class FlashLogRow:
         return cls(**dict(zip(FIELD_NAMES, vals)))
 
 # ---------- Helpers ----------
-def read_exact(ser: serial.Serial, n: int) -> bytes:
-    out = bytearray()
-    while len(out) < n:
-        chunk = ser.read(n - len(out))
-        if not chunk:
-            raise EOFError("Serial timeout/closed while reading")
-        out.extend(chunk)
-    return bytes(out)
-
 def print_ascii_chunk(chunk: bytes):
     """Print human-readable ASCII seen before binary starts (echo, prompts, etc.)."""
     if not chunk:
@@ -80,23 +76,61 @@ def print_ascii_chunk(chunk: bytes):
         sys.stdout.write("[ASCII] " + line)
         sys.stdout.flush()
 
+def send_cli_command(command: str, ser: serial.Serial):
+    ser.write(command.encode('ascii'))
+    ser.flush()
+    time.sleep(0.1)
+
+def enable_cli_check_for_enabled(ser: serial.Serial) -> bool:
+    send_cli_command(CLI_ENABLE_CODE, ser)
+    time.sleep(1)
+
+    ser.reset_input_buffer()
+
+    send_cli_command(CLI_PING_COMMAND, ser)
+
+    old_timeout = ser.timeout
+    ser.timeout = 1
+
+    rx = ser.read(100).decode('ascii', errors='ignore')
+
+    ser.timeout = old_timeout
+
+    if "pong" in rx and CLI_PROMPT in rx:
+        return True
+    else:
+        return False
+
+def read_chunk_into_buf(ser, buf):
+    chunk = ser.read(4096)
+    if chunk:
+        buf.extend(chunk)
+
+def handle_start_not_found(buf):
+    # keep only last 3 bytes so a split marker can straddle reads
+    if len(buf) > 3:
+        del buf[:-3]
+
+    return buf
+
 # ---------- Stream parsing ----------
 def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
     print(f"[*] Opening {port} @ {baud} ...")
-    ser = serial.Serial(port, baudrate=baud, timeout=1)
+    ser = serial.Serial(port, baudrate=baud, timeout=0.02)
     print("[*] Port opened.")
 
-    # --- Enable CLI and kick off dump ---
-    ser.reset_input_buffer()
-    print("[*] Enabling CLI (sending one wake char)...")
-    ser.write(b' ')                 # any single character to enable CLI
-    ser.flush()
-    time.sleep(0.05)
+    # --- Enable CLI ---
+    print("[*] Enabling CLI (sending wake combo)...")
+    enabled = enable_cli_check_for_enabled(ser)
+    if not enabled:
+        print("[!!] CLI is not enabled. Aborting.")
+        return
+    else:
+        print("[*] CLI is enabled.")
 
-    cmd = b'logDump\n'              # change to b'logDump\r\n' if your CLI expects CRLF
-    print(f"[*] Sending command: {cmd!r}")
-    ser.write(cmd)
-    ser.flush()
+    # # --- Kick off dump ---
+    cmd = 'logDump\n'
+    send_cli_command(cmd, ser)
 
     print("[*] Waiting for first row marker 0x%08X ..." % ROW_MARKER)
 
@@ -115,12 +149,13 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             print(f"[*] CSV logging to: {csv_path}")
 
         while True:
-            chunk = ser.read(4096)
-            if chunk:
-                # Show any ASCII the device prints (prompt/echo/etc.) before sync
-                if not synced:
-                    print_ascii_chunk(chunk)
-                buf.extend(chunk)
+            read_chunk_into_buf(ser, buf)
+            # chunk = ser.read(4096)
+            # if chunk:
+                # # Show any ASCII the device prints (prompt/echo/etc.) before sync
+                # if not synced:
+                    # print_ascii_chunk(chunk)
+                # buf.extend(chunk)
 
             # Status ping while waiting
             now = time.time()
@@ -131,17 +166,15 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             # Try to find the next marker
             start = buf.find(ROW_MARKER_LE)
             if start == -1:
-                # keep only last 3 bytes so a split marker can straddle reads
-                if len(buf) > 3:
-                    del buf[:-3]
+                buf = handle_start_not_found(buf)
+                # # keep only last 3 bytes so a split marker can straddle reads
+                # if len(buf) > 3:
+                    # del buf[:-3]
                 continue
 
             # Discard leading bytes before the marker (likely ASCII/prompt)
             if start > 0:
                 discarded = bytes(buf[:start])
-                if not synced:
-                    # One more chance to print any readable prompt in the discarded region
-                    print_ascii_chunk(discarded)
                 print(f"[*] Found marker at offset {start}, discarded {start} byte(s) of preamble.")
                 del buf[:start]
 
@@ -175,10 +208,10 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
                 writer.writerow(d)
 
             rows += 1
-            if rows <= 5 or rows % 100 == 0:
-                # Light progress print
-                print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
-                      f"unproc=({row.unproc_x:.3f},{row.unproc_y:.3f},{row.unproc_z:.3f})")
+            # if rows <= 5 or rows % 100 == 0:
+            # Light progress print
+            print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
+                  f"unproc=({row.unproc_x:.6f},{row.unproc_y:.6f},{row.unproc_z:.6f})")
 
             if max_rows is not None and rows >= max_rows:
                 print("[*] Reached max_rows, stopping.")
@@ -202,4 +235,4 @@ if __name__ == "__main__":
     port = sys.argv[1]
     baud = int(sys.argv[2]) if len(sys.argv) >= 3 else 921600
     csv_out = sys.argv[3] if len(sys.argv) >= 4 else None
-    parse_rows(port, baud, csv_out)
+    parse_rows(port, baud, csv_out, max_rows = 10)
