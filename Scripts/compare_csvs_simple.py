@@ -23,6 +23,11 @@ def main():
     df1 = df1[cols]
     df2 = df2[cols]
 
+    # Drop boolean columns first
+    bool_cols = df1.select_dtypes(include=["bool"]).columns
+    df1 = df1.drop(columns=bool_cols)
+    df2 = df2.drop(columns=bool_cols)
+
     # Convert to numeric and drop columns that fail conversion (ignore non-numeric)
     df1n = df1.apply(pd.to_numeric, errors="coerce")
     df2n = df2.apply(pd.to_numeric, errors="coerce")

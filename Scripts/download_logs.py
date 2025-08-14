@@ -91,17 +91,18 @@ def enable_cli_check_for_enabled(ser: serial.Serial) -> bool:
 
     send_cli_command(CLI_PING_COMMAND, ser)
 
-    old_timeout = ser.timeout
-    ser.timeout = 1
+    start = time.time()
 
-    rx = ser.read(100).decode('ascii', errors='ignore')
+    rx = ""
+    while time.time() - start < 10:
+        rx += ser.read(5000).decode('ascii', errors='ignore')
+        if "pong" in rx and CLI_PROMPT in rx:
+            ser.reset_input_buffer()
+            return True
 
-    ser.timeout = old_timeout
-
-    if "pong" in rx and CLI_PROMPT in rx:
-        return True
-    else:
-        return False
+    # Failed to enable CLI
+    ser.reset_input_buffer()
+    return False
 
 def read_chunk_into_buf(ser, buf):
     chunk = ser.read(4096)
@@ -243,4 +244,4 @@ if __name__ == "__main__":
     port = sys.argv[1]
     baud = int(sys.argv[2]) if len(sys.argv) >= 3 else 921600
     csv_out = sys.argv[3] if len(sys.argv) >= 4 else None
-    parse_rows(port, baud, csv_out, max_rows = 20)
+    parse_rows(port, baud, csv_out)
