@@ -40,6 +40,14 @@ BaseType_t logDumpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const cha
     return pdFALSE;
 }
 
+BaseType_t logSizeCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    uint32_t num_rows = flash_log_get_num_log_entries();
+
+    snprintf(pcWriteBuffer, xWriteBufferLen, "Num Rows: %ld\n", num_rows);
+    return pdFALSE;
+}
+
 BaseType_t pingCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     snprintf(pcWriteBuffer, xWriteBufferLen, "pong\n");

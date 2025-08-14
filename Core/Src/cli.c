@@ -110,6 +110,7 @@ void uart_rx_cb(uint8_t data) {
 CLI_Definition_List_Item_t pingCommandListItem;
 CLI_Definition_List_Item_t logClearCommandListItem;
 CLI_Definition_List_Item_t logDumpCommandListItem;
+CLI_Definition_List_Item_t logSizeCommandListItem;
 
 cli_status_t cli_register_commands() {
     BaseType_t status = FreeRTOS_CLIRegisterCommandStatic(&pingCommandDefinition,
@@ -126,6 +127,12 @@ cli_status_t cli_register_commands() {
 
     status = FreeRTOS_CLIRegisterCommandStatic(&logDumpCommandDefinition,
                                       &logDumpCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&logSizeCommandDefinition,
+                                      &logSizeCommandListItem);
     if (status != pdPASS) {
         return CLI_STATUS_ERROR_OTHER;
     }

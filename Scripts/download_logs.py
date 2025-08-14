@@ -30,7 +30,7 @@ CLI_PING_COMMAND = 'ping\n'
 ROW_MARKER = 0xBEEDFACE
 ROW_MARKER_LE = struct.pack('<I', ROW_MARKER)
 
-LOG_RECEIVE_TIMEOUT_SECONDS = 5
+LOG_RECEIVE_TIMEOUT_SECONDS = 2
 
 # < = little-endian. Layout: I (marker) + 13f + I + I  => 64 bytes
 STRUCT_FMT = '<I13fII'
@@ -105,7 +105,7 @@ def enable_cli_check_for_enabled(ser: serial.Serial) -> bool:
     return False
 
 def read_chunk_into_buf(ser, buf):
-    chunk = ser.read(4096)
+    chunk = ser.read(64)
     if chunk:
         buf.extend(chunk)
 
@@ -144,7 +144,7 @@ def pop_row_and_decode(buf):
 # ---------- Stream parsing ----------
 def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
     print(f"[*] Opening {port} @ {baud} ...")
-    ser = serial.Serial(port, baudrate=baud, timeout=0.02)
+    ser = serial.Serial(port, baudrate=baud, timeout=0.01)
     print("[*] Port opened.")
 
     # --- Enable CLI ---
@@ -219,8 +219,11 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
 
             rows += 1
 
-            print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
-                  f"unproc=({row.unproc_x:.6f},{row.unproc_y:.6f},{row.unproc_z:.6f})")
+            last_row_received_time = time.time()
+
+            if rows <= 10 or (rows % 100) == 0:
+                print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
+                      f"unproc=({row.unproc_x:.6f},{row.unproc_y:.6f},{row.unproc_z:.6f})")
 
             if max_rows is not None and rows >= max_rows:
                 print("[*] Reached max_rows, stopping.")

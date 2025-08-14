@@ -34,6 +34,17 @@ static const CLI_Command_Definition_t logDumpCommandDefinition = {
         .cExpectedNumberOfParameters = 0,
 };
 
+BaseType_t logSizeCommand(char *pcWriteBuffer,
+                         size_t xWriteBufferLen,
+                         const char *pcCommandString );
+
+static const CLI_Command_Definition_t logSizeCommandDefinition = {
+        .pcCommand = "logSize",
+        .pcHelpString = "logSize: Print the number of log entries (number of rows, where one row is one IMU sample)\r\n",
+        .pxCommandInterpreter = logSizeCommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
 BaseType_t pingCommand(char *pcWriteBuffer,
                          size_t xWriteBufferLen,
                          const char *pcCommandString );
