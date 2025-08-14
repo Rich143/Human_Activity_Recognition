@@ -30,6 +30,8 @@ CLI_PING_COMMAND = 'ping\n'
 ROW_MARKER = 0xBEEDFACE
 ROW_MARKER_LE = struct.pack('<I', ROW_MARKER)
 
+LOG_RECEIVE_TIMEOUT_SECONDS = 5
+
 # < = little-endian. Layout: I (marker) + 13f + I + I  => 64 bytes
 STRUCT_FMT = '<I13fII'
 STRUCT_SIZE = struct.calcsize(STRUCT_FMT)  # should be 64
@@ -117,8 +119,6 @@ def trim_buf_to_start(buf, start):
     if start > 0:
         print(f"[*] Found marker at offset {start}, discarded {start} byte(s) of preamble.")
         del buf[:start]
-    else:
-        print("[*] Found marker at offset 0, no preamble to discard.")
 
     return buf
 
@@ -167,6 +167,7 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
     synced = False  # becomes True after we lock onto the first marker
     rows = 0
     last_status_print = 0.0
+    last_row_received_time = time.time()
 
     try:
         if csv_path:
@@ -183,6 +184,11 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             if not synced and (now - last_status_print) > 0.5:
                 print(f"[.] still waiting for marker… buffer has {len(buf)} bytes")
                 last_status_print = now
+
+            if now - last_row_received_time > LOG_RECEIVE_TIMEOUT_SECONDS:
+                print("[!] Timeout. Stopping.")
+                break
+
 
             # Try to find the next marker
             start = buf.find(ROW_MARKER_LE)
@@ -237,4 +243,4 @@ if __name__ == "__main__":
     port = sys.argv[1]
     baud = int(sys.argv[2]) if len(sys.argv) >= 3 else 921600
     csv_out = sys.argv[3] if len(sys.argv) >= 4 else None
-    parse_rows(port, baud, csv_out, max_rows = 10)
+    parse_rows(port, baud, csv_out, max_rows = 20)
