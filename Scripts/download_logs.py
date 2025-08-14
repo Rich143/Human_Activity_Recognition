@@ -20,12 +20,16 @@ import csv
 import time
 from dataclasses import dataclass, asdict
 from typing import Optional
+import re
 
 # ---------- Struct and constants ----------
 CLI_PROMPT =  'CLI > '
 CLI_ENABLE_CODE = 'aaaaaaaaaa'
 
 CLI_PING_COMMAND = 'ping\n'
+CLI_LOG_SIZE_COMMAND = 'logSize\n'
+
+LOG_NUM_ROWS_RE = re.compile(rb'Num\s*Rows:\s*(\d+)', re.IGNORECASE)
 
 ROW_MARKER = 0xBEEDFACE
 ROW_MARKER_LE = struct.pack('<I', ROW_MARKER)
@@ -104,6 +108,32 @@ def enable_cli_check_for_enabled(ser: serial.Serial) -> bool:
     ser.reset_input_buffer()
     return False
 
+def query_log_size(ser: serial.Serial, timeout: float=2.0) -> int:
+    """
+    Sends 'logSize' command, then parses 'Num Rows: N'.
+    Returns the integer row count. Raises TimeoutError if not found in time.
+    """
+
+    send_cli_command(CLI_LOG_SIZE_COMMAND, ser)
+
+    buf = bytearray()
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        chunk = ser.read(64)
+        if chunk:
+            buf.extend(chunk)
+            m = LOG_NUM_ROWS_RE.search(buf)
+            if m:
+                rows = int(m.group(1))
+                ser.reset_input_buffer()
+                return rows
+    # If we got here, we didn’t see the line in time—print whatever we saw for debugging.
+    try:
+        print("[!] logSize response (partial):", buf.decode('ascii', errors='ignore'))
+    except Exception:
+        pass
+    raise TimeoutError("Timed out waiting for 'Num Rows:' from device")
+
 def read_chunk_into_buf(ser, buf):
     chunk = ser.read(64)
     if chunk:
@@ -133,13 +163,6 @@ def pop_row_and_decode(buf):
 
     return row, buf
 
-    # if row_start_ok:
-        # return row, buf
-    # else:
-        # # False positive; resync by skipping one byte.
-        # buf[:0] = row_bytes[1:]  # push bytes (except first) back
-        # print("[!] Marker check failed after unpack; resyncing by 1 byte.")
-
 
 # ---------- Stream parsing ----------
 def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, max_rows: Optional[int] = None):
@@ -155,6 +178,11 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
         return
     else:
         print("[*] CLI is enabled.")
+
+    # --- Query log size ---
+    print("[*] Querying log size...")
+    num_rows = query_log_size(ser)
+    print(f"[*] Device reports {num_rows} rows.")
 
     # # --- Kick off dump ---
     cmd = 'logDump\n'
@@ -222,7 +250,7 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             last_row_received_time = time.time()
 
             if rows <= 10 or (rows % 100) == 0:
-                print(f"[#] Row {rows}  class={row.output_class}  has_out={row.contains_output}  "
+                print(f"[#] Row {rows} / {num_rows}  class={row.output_class}  has_out={row.contains_output}  "
                       f"unproc=({row.unproc_x:.6f},{row.unproc_y:.6f},{row.unproc_z:.6f})")
 
             if max_rows is not None and rows >= max_rows:
