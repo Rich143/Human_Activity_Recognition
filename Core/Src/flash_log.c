@@ -232,7 +232,7 @@ flash_log_status_t flash_log_print_csv() {
 }
 
 flash_log_status_t send_row_over_uart(flash_log_row_t *row) {
-    bool success = uart_send_data((uint8_t *)row, sizeof(flash_log_row_t));
+    bool success = uart_cli_send_data((uint8_t *)row, sizeof(flash_log_row_t));
 
     if (success) {
         return FLASH_LOG_OK;

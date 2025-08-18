@@ -143,7 +143,7 @@ cli_status_t cli_register_commands() {
 void setup_waiting_for_input() {
     received_enable_char_count = 0;
 
-    uart_rx_cli_register_callback(uart_rx_cb_check_for_enable_input);
+    uart_cli_rx_register_callback(uart_rx_cb_check_for_enable_input);
 
     uart_cli_rx_start();
 
@@ -171,7 +171,7 @@ cli_status_t cli_start() {
 
     dbuf_init(&buffer_state);
 
-    uart_rx_cli_register_callback(uart_rx_cb);
+    uart_cli_rx_register_callback(uart_rx_cb);
 
     cli_printf("\n%s", prompt);
 

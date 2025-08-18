@@ -24,6 +24,12 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 
+#include "ble_at_client.h"
+#include "b-u585i-iot02a-bsp/b_u585i_iot02a.h"
+#include "wb-at-client/stm32wb_at.h"
+#include "wb-at-client/stm32wb_at_ble.h"
+#include "wb-at-client/stm32wb_at_client.h"
+
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_motion_sensors.h"
 #include "imu_manager.h"
 #include "buttons.h"
@@ -94,6 +100,50 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void ble_setup_and_run() {
+  ble_at_client_init();
+
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+
+  BSP_LED_Off(LED_GREEN);
+  printf("--------------------------------------------\n");
+  printf("Start of the STM32WB5M module AT example.\n");
+  printf("Run ST BLE sensor application on your smartphone and connect to you device.\n");
+  printf("Press user button:\n");
+  printf("  - once to notify a value.\n");
+  printf("  - twice to toggle the BLE service.\n");
+  printf("--------------------------------------------\n");
+
+  HAL_Delay(2000);
+  uint8_t status = stm32wb_at_Init(&at_buffer[0], sizeof(at_buffer));
+  status |= stm32wb_at_client_Init();
+
+  /* Test the UART communication link with BLE module */
+  status |= stm32wb_at_client_Query(BLE_TEST);
+  HAL_Delay(1000);
+
+  if(status != 0)
+  {
+    printf("Failed to initialize BLE module\n");
+    Error_Handler();
+  } else {
+    printf("BLE module initialized\n");
+  }
+
+  /* Send a BLE AT command to start the BLE P2P server application */
+  stm32wb_at_BLE_SVC_t param_BLE_SVC;
+  global_svc_index = 1;
+  param_BLE_SVC.index = global_svc_index;
+  status = stm32wb_at_client_Set(BLE_SVC, &param_BLE_SVC);
+  if (status != 0)
+  {
+    printf("Failed to start the BLE P2P server application\n");
+    Error_Handler();
+  }
+
+  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
+}
 
 /* USER CODE END 0 */
 
@@ -166,6 +216,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  ble_setup_and_run();
 
   while (1)
   {

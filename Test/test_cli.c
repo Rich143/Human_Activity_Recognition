@@ -18,11 +18,11 @@
         TEST_ASSERT_EQUAL_INT_MESSAGE(CLI_STATUS_OK, status, "Expected CLI_STATUS_OK"); \
     } while (0)
 
-uart_rx_cli_cb_t uart_rx_cli_cb;
+uart_rx_cb_t uart_cli_rx_cb;
 
-void uart_rx_cli_register_callback_mock_cb(uart_rx_cli_cb_t cb, int cmock_num_calls)
+void uart_cli_rx_register_callback_mock_cb(uart_rx_cb_t cb, int cmock_num_calls)
 {
-    uart_rx_cli_cb = cb;
+    uart_cli_rx_cb = cb;
 }
 
 void mock_cmsis_gcc() {
@@ -40,7 +40,7 @@ void setUp(void)
 
     uart_cli_rx_start_Ignore();
 
-    uart_rx_cli_register_callback_Stub(&uart_rx_cli_register_callback_mock_cb);
+    uart_cli_rx_register_callback_Stub(&uart_cli_rx_register_callback_mock_cb);
 
     if (!cli_initialised) {
         // CLI Init can only be called once (due to command registration)
@@ -63,11 +63,11 @@ void expectPing() {
 }
 
 void sendPing() {
-    uart_rx_cli_cb('p');
-    uart_rx_cli_cb('i');
-    uart_rx_cli_cb('n');
-    uart_rx_cli_cb('g');
-    uart_rx_cli_cb('\n');
+    uart_cli_rx_cb('p');
+    uart_cli_rx_cb('i');
+    uart_cli_rx_cb('n');
+    uart_cli_rx_cb('g');
+    uart_cli_rx_cb('\n');
 }
 
 void testPing(void) {
@@ -97,15 +97,15 @@ void expectLogClear() {
 }
 
 void sendLogClear() {
-    uart_rx_cli_cb('l');
-    uart_rx_cli_cb('o');
-    uart_rx_cli_cb('g');
-    uart_rx_cli_cb('C');
-    uart_rx_cli_cb('l');
-    uart_rx_cli_cb('e');
-    uart_rx_cli_cb('a');
-    uart_rx_cli_cb('r');
-    uart_rx_cli_cb('\n');
+    uart_cli_rx_cb('l');
+    uart_cli_rx_cb('o');
+    uart_cli_rx_cb('g');
+    uart_cli_rx_cb('C');
+    uart_cli_rx_cb('l');
+    uart_cli_rx_cb('e');
+    uart_cli_rx_cb('a');
+    uart_cli_rx_cb('r');
+    uart_cli_rx_cb('\n');
 }
 
 void testLogClear(void) {
@@ -122,14 +122,14 @@ void expectLogDump() {
 }
 
 void sendLogDump() {
-    uart_rx_cli_cb('l');
-    uart_rx_cli_cb('o');
-    uart_rx_cli_cb('g');
-    uart_rx_cli_cb('D');
-    uart_rx_cli_cb('u');
-    uart_rx_cli_cb('m');
-    uart_rx_cli_cb('p');
-    uart_rx_cli_cb('\n');
+    uart_cli_rx_cb('l');
+    uart_cli_rx_cb('o');
+    uart_cli_rx_cb('g');
+    uart_cli_rx_cb('D');
+    uart_cli_rx_cb('u');
+    uart_cli_rx_cb('m');
+    uart_cli_rx_cb('p');
+    uart_cli_rx_cb('\n');
 }
 
 void testLogDump(void) {
