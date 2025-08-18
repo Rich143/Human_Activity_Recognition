@@ -169,6 +169,24 @@ int main(void)
 
   while (1)
   {
+    // Check to see if we should start the CLI
+    // CLI is enabled if we receive any input
+    // if enabled, application code stops
+    if (cli_check_for_input_to_enable()) {
+      cli_status = cli_start();
+      if (cli_status != CLI_STATUS_OK) {
+        printf("Failed to start CLI\n");
+        while(1);
+      }
+
+      while(1) {
+        cli_status = cli_run();
+        if (cli_status != CLI_STATUS_OK) {
+          printf("Failed to run CLI\n");
+          while(1);
+        }
+      }
+    }
 
     /* USER CODE END WHILE */
 
