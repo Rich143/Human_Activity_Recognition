@@ -22,3 +22,6 @@
 [submodule "Drivers/Components/aps6408"]
 	path = Drivers/Components/aps6408
 	url = https://github.com/STMicroelectronics/stm32-aps6408.git
+[submodule "Drivers/Components/wb-at-client"]
+	path = Drivers/Components/wb-at-client
+	url = https://github.com/STMicroelectronics/stm32-wb-at.git

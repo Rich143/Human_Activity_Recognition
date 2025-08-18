@@ -135,6 +135,7 @@ NVIC.PendSV_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.PriorityGroup=NVIC_PRIORITYGROUP_4
 NVIC.SVCall_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.SysTick_IRQn=true\:15\:0\:false\:false\:true\:false\:true\:false
+NVIC.UART4_IRQn=true\:0\:0\:false\:false\:true\:true\:true\:true
 NVIC.USART1_IRQn=true\:0\:0\:false\:false\:true\:true\:true\:true
 NVIC.UsageFault_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 OCTOSPI1.ChipSelectBoundary=10
@@ -601,6 +602,8 @@ STMicroelectronics.X-CUBE-AI.8.1.0.useInputAllocation-bd019230dedc1074351b9f6db1
 STMicroelectronics.X-CUBE-AI.8.1.0.useOutputAllocation=true
 STMicroelectronics.X-CUBE-AI.8.1.0.useOutputAllocation-bd019230dedc1074351b9f6db15181a2af16168b05c173a08e78a11e6d98613f=true
 STMicroelectronics.X-CUBE-AI.8.1.0_SwParameter=ApplicationCcDeviceJjApplication\:ApplicationTemplate;XAaCUBEAaAICcArtificialOoIntelligenceJjCore\:true;
+UART4.BaudRate=9600
+UART4.IPParameters=BaudRate
 USART1.BaudRate=921600
 USART1.IPParameters=VirtualMode-Asynchronous,BaudRate
 USART1.VirtualMode-Asynchronous=VM_ASYNC

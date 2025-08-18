@@ -171,26 +171,8 @@ int main(void)
   {
 
     /* USER CODE END WHILE */
-    // Check to see if we should start the CLI
-    // CLI is enabled if we receive any input
-    // if enabled, application code stops
-    if (cli_check_for_input_to_enable()) {
-      cli_status = cli_start();
-      if (cli_status != CLI_STATUS_OK) {
-        printf("Failed to start CLI\n");
-        while(1);
-      }
 
-      while(1) {
-        cli_status = cli_run();
-        if (cli_status != CLI_STATUS_OK) {
-          printf("Failed to run CLI\n");
-          while(1);
-        }
-      }
-    }
-
-    MX_X_CUBE_AI_Process();
+  MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -679,7 +661,7 @@ static void MX_UART4_Init(void)
 
   /* USER CODE END UART4_Init 1 */
   huart4.Instance = UART4;
-  huart4.Init.BaudRate = 115200;
+  huart4.Init.BaudRate = 9600;
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
   huart4.Init.StopBits = UART_STOPBITS_1;
   huart4.Init.Parity = UART_PARITY_NONE;
