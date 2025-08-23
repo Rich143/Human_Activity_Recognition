@@ -159,7 +159,6 @@ def pop_row_and_decode(buf):
 
     # Decode
     row = FlashLogRow.from_bytes(row_bytes)
-    row_start_ok = (row.row_start_marker == ROW_MARKER)
 
     return row, buf
 
@@ -201,7 +200,7 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
     try:
         if csv_path:
             csv_file = open(csv_path, 'w', newline='')
-            writer = csv.DictWriter(csv_file, fieldnames=FIELD_NAMES[1:] + ['row_start_ok'])
+            writer = csv.DictWriter(csv_file, fieldnames=FIELD_NAMES[1:])
             writer.writeheader()
             print(f"[*] CSV logging to: {csv_path}")
 
@@ -242,7 +241,6 @@ def parse_rows(port: str, baud: int = 921600, csv_path: Optional[str] = None, ma
             if writer:
                 d = asdict(row)
                 d.pop('row_start_marker', None)
-                d['row_start_ok'] = True
                 writer.writerow(d)
 
             rows += 1
