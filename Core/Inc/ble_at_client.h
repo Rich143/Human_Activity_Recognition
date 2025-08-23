@@ -19,6 +19,8 @@
 #ifndef __BLE_AT_CLIENT_H__
 #define __BLE_AT_CLIENT_H__
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,6 +32,8 @@ extern uint8_t global_svc_index;
 extern uint8_t at_buffer[64];
 
 void ble_at_client_init();
+int8_t ble_at_client_notify();
+int8_t ble_at_client_set_service(uint8_t svc_index);
 
 #ifdef __cplusplus
 }

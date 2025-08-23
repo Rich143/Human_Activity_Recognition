@@ -119,19 +119,61 @@ void ble_setup_and_run() {
   uint8_t status = stm32wb_at_Init(&at_buffer[0], sizeof(at_buffer));
   status |= stm32wb_at_client_Init();
 
-  /* Test the UART communication link with BLE module */
-  status |= stm32wb_at_client_Query(BLE_TEST);
-  HAL_Delay(1000);
-
   if(status != 0)
   {
-    printf("Failed to initialize BLE module\n");
+    printf("Failed to initialize AT module\n");
     Error_Handler();
-  } else {
-    printf("BLE module initialized\n");
   }
 
+  /* Test the UART communication link with BLE module */
+  printf("Testing the UART communication link with BLE module\n");
+  status = stm32wb_at_client_Query(BLE_TEST);
+  if (status != 0) {
+    printf("Failed to test the UART communication link with BLE module\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(1000);
+
+  printf("Resetting BLE module\n");
+  stm32wb_at_BLE_RST_t param_RST = { .reset = 1 };
+  status = stm32wb_at_client_Set(BLE_RST, &param_RST);
+  if (status != 0)
+  {
+    printf("Failed to reset BLE module\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
+  /* Set BLE device name */
+  printf("Setting BLE device name\n");
+  stm32wb_at_BLE_NAME_t param_BLE_NAME = {
+    .name = "STM32WB5M-Rich",
+  };
+
+  status = stm32wb_at_client_Set(BLE_NAME, &param_BLE_NAME);
+  if (status != 0)
+  {
+    printf("Failed to set BLE device name\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
+  /* Query name */
+  printf("Querying BLE device name\n");
+  status = stm32wb_at_client_Query(BLE_NAME);
+  if (status != 0)
+  {
+    printf("Failed to query BLE device name\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
   /* Send a BLE AT command to start the BLE P2P server application */
+  printf("Starting the BLE P2P server application\n");
   stm32wb_at_BLE_SVC_t param_BLE_SVC;
   global_svc_index = 1;
   param_BLE_SVC.index = global_svc_index;
@@ -139,6 +181,42 @@ void ble_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to start the BLE P2P server application\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
+  /* Query the BLE service to check if it is running */
+  printf("Querying the BLE service to check if it is running\n");
+  status = stm32wb_at_client_Query(BLE_SVC);
+  if (status != 0)
+  {
+    printf("Failed to query BLE service\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
+  /* Adverstise BLE Service */
+  printf("Advertising BLE Service\n");
+  stm32wb_at_BLE_ADV_t param_BLE_ADV = {
+    .enable = 1,
+  };
+  status = stm32wb_at_client_Set(BLE_ADV, &param_BLE_ADV);
+  if (status != 0)
+  {
+    printf("Failed to advertise BLE Service\n");
+    Error_Handler();
+  }
+
+  HAL_Delay(500);
+
+  /* Query advertised BLE Service */
+  printf("Querying advertised BLE Service\n");
+  status = stm32wb_at_client_Query(BLE_ADV);
+  if (status != 0)
+  {
+    printf("Failed to query advertised BLE Service\n");
     Error_Handler();
   }
 
@@ -240,8 +318,7 @@ int main(void)
     }
 
     /* USER CODE END WHILE */
-
-  MX_X_CUBE_AI_Process();
+    /*MX_X_CUBE_AI_Process();*/
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

@@ -12,6 +12,7 @@
 #include "wb-at-client/stm32wb_at_ble.h"
 #include "wb-at-client/stm32wb_at_client.h"
 #include "High_Level/uart.h"
+#include <stdint.h>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -24,6 +25,43 @@ uint8_t global_svc_index = 0;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
+int8_t ble_at_client_notify() {
+  /* Send a BLE_NOTIF_VAL command to notify BLE application */
+  stm32wb_at_BLE_NOTIF_VAL_t param_BLE_NOTIF_VAL;
+  if(global_svc_index == 1)
+  {
+    param_BLE_NOTIF_VAL.svc_index = 1;
+    param_BLE_NOTIF_VAL.char_index = 2;
+    param_BLE_NOTIF_VAL.val_tab[0] = 1;
+    param_BLE_NOTIF_VAL.val_tab_len = 1;
+  }
+  else
+  {
+    param_BLE_NOTIF_VAL.svc_index = 2;
+    param_BLE_NOTIF_VAL.char_index = 1;
+    param_BLE_NOTIF_VAL.val_tab[0] = 80 + (HAL_GetTick() % 60);
+    param_BLE_NOTIF_VAL.val_tab_len = 1;
+  }
+
+  return stm32wb_at_client_Set(BLE_NOTIF_VAL, &param_BLE_NOTIF_VAL);
+}
+
+int8_t ble_at_client_set_service(uint8_t svc_index) {
+  /* Send a BLE_SVC command to select the service running */
+
+  if (svc_index != 1 && svc_index != 2) {
+    return -1;
+  }
+
+  stm32wb_at_BLE_SVC_t param_BLE_SVC;
+  param_BLE_SVC.index = svc_index;
+  int8_t status = stm32wb_at_client_Set(BLE_SVC, &param_BLE_SVC);
+
+  global_svc_index = svc_index;
+
+  return status;
+}
+
 /**
   * @brief  BSP Push Button callback
   * @param  Button Specifies the pin connected EXTI line
@@ -31,6 +69,7 @@ uint8_t global_svc_index = 0;
   */
 void BSP_PB_Callback(Button_TypeDef Button)
 {
+  printf("BSP_PB_Callback\n");
   if (Button == BUTTON_USER)
   {
     if( (HAL_GetTick() - tick_snapshot2) > 4000)
@@ -86,7 +125,15 @@ void BSP_PB_Callback(Button_TypeDef Button)
 
 uint8_t stm32wb_at_BLE_SVC_cb(stm32wb_at_BLE_SVC_t *param)
 {
+  printf("Query Response: Service selected is %d\n", param->index);
   global_svc_index = param->index;
+
+  return 0;
+}
+
+uint8_t stm32wb_at_BLE_ADV_cb(stm32wb_at_BLE_ADV_t *param)
+{
+  printf("Query Response: advertise is %d\n", param->enable);
 
   return 0;
 }
