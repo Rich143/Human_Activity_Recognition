@@ -301,7 +301,6 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[],
 
     if (preprocess_status != PREPROCESS_STATUS_OK) {
         if (preprocess_status == PREPROCESS_STATUS_ERROR_BUFFERING) {
-            printf("Buffering IMU data for preprocessing\n");
             return preprocess_status;
         } else {
             printf("Failed to preprocess\n");
@@ -407,26 +406,29 @@ void MX_X_CUBE_AI_Process(void)
             if (res == 0) {
                 res = post_process(data_outs, &log_data);
 
-#if LOGGING_ENABLED
-                flash_log_status_t status = flash_log_write_window(
-                    log_data.input,
-                    log_data.filtered,
-                    log_data.network_input,
-                    log_data.model_output,
-                    log_data.output_class,
-                    IMU_WINDOW_SIZE);
+                if (config_get_logging_enabled()) {
+                    flash_log_status_t status = flash_log_write_window(
+                        log_data.input,
+                        log_data.filtered,
+                        log_data.network_input,
+                        log_data.model_output,
+                        log_data.output_class,
+                        IMU_WINDOW_SIZE);
 
-                if (status != FLASH_LOG_OK) {
-                    printf("Failed to write window to flash: %d\n", status);
-                    while(1);
+                    if (status != FLASH_LOG_OK) {
+                        printf("Failed to write window to flash: %d\n", status);
+                        while(1);
+                    }
                 }
-#endif
-                print_imu_csv_2(log_data.input,
-                                log_data.filtered,
-                                log_data.network_input,
-                                log_data.model_output,
-                                log_data.output_class,
-                                IMU_WINDOW_SIZE);
+
+                if (config_get_print_csv_enabled()) {
+                    print_imu_csv_2(log_data.input,
+                                    log_data.filtered,
+                                    log_data.network_input,
+                                    log_data.model_output,
+                                    log_data.output_class,
+                                    IMU_WINDOW_SIZE);
+                }
             }
         } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
             // buffering, continue

@@ -8,6 +8,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "ble_at_client.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a.h"
+#include "config.h"
 #include "wb-at-client/stm32wb_at.h"
 #include "wb-at-client/stm32wb_at_ble.h"
 #include "wb-at-client/stm32wb_at_client.h"
@@ -18,9 +19,9 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static uint32_t tick_snapshot, tick_snapshot2;
 uint8_t at_buffer[64];
 uint8_t global_svc_index = 0;
+bool global_device_connected = false;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -62,70 +63,8 @@ int8_t ble_at_client_set_service(uint8_t svc_index) {
   return status;
 }
 
-/**
-  * @brief  BSP Push Button callback
-  * @param  Button Specifies the pin connected EXTI line
-  * @retval None.
-  */
-void BSP_PB_Callback(Button_TypeDef Button)
-{
-  printf("BSP_PB_Callback\n");
-  if (Button == BUTTON_USER)
-  {
-    if( (HAL_GetTick() - tick_snapshot2) > 4000)
-    {
-      if( (HAL_GetTick() - tick_snapshot) < 500)
-      {
-        uint8_t svc_index;
-
-        tick_snapshot2 = HAL_GetTick();
-        if(global_svc_index == 1)
-        {
-          svc_index = 2;
-        }
-        else
-        {
-          svc_index = 1;
-        }
-        /* Send a BLE_SVC command to select the service running */
-        stm32wb_at_BLE_SVC_t param_BLE_SVC;
-        param_BLE_SVC.index = svc_index;
-        stm32wb_at_client_Set(BLE_SVC, &param_BLE_SVC);
-        
-        global_svc_index = svc_index;
-      }
-      else
-      {
-        tick_snapshot = HAL_GetTick();
-
-        /* Send a BLE_NOTIF_VAL command to notify BLE application */
-        stm32wb_at_BLE_NOTIF_VAL_t param_BLE_NOTIF_VAL;
-        if(global_svc_index == 1)
-        {
-          param_BLE_NOTIF_VAL.svc_index = 1;
-          param_BLE_NOTIF_VAL.char_index = 2;
-          param_BLE_NOTIF_VAL.val_tab[0] = 1;
-          param_BLE_NOTIF_VAL.val_tab_len = 1;
-        }
-        else
-        {
-          param_BLE_NOTIF_VAL.svc_index = 2;
-          param_BLE_NOTIF_VAL.char_index = 1;
-          param_BLE_NOTIF_VAL.val_tab[0] = 80 + (HAL_GetTick() % 60);
-          param_BLE_NOTIF_VAL.val_tab_len = 1;
-        }
-
-        stm32wb_at_client_Set(BLE_NOTIF_VAL, &param_BLE_NOTIF_VAL);
-      }
-    }
-  }
-
-  return;
-}
-
 uint8_t stm32wb_at_BLE_SVC_cb(stm32wb_at_BLE_SVC_t *param)
 {
-  printf("Query Response: Service selected is %d\n", param->index);
   global_svc_index = param->index;
 
   return 0;
@@ -133,8 +72,6 @@ uint8_t stm32wb_at_BLE_SVC_cb(stm32wb_at_BLE_SVC_t *param)
 
 uint8_t stm32wb_at_BLE_ADV_cb(stm32wb_at_BLE_ADV_t *param)
 {
-  printf("Query Response: advertise is %d\n", param->enable);
-
   return 0;
 }
 
@@ -144,10 +81,14 @@ uint8_t stm32wb_at_BLE_EVT_WRITE_cb(stm32wb_at_BLE_EVT_WRITE_t *param)
   {
     if(param->val_tab[0] == 0)
     {
+      printf("Logging disabled\n");
+      config_set_logging_enabled(false);
       BSP_LED_Off(LED_GREEN);
     }
     else
     {
+      printf("Logging enabled\n");
+      config_set_logging_enabled(true);
       BSP_LED_On(LED_GREEN);
     }
   }
@@ -160,10 +101,12 @@ uint8_t stm32wb_at_BLE_EVT_CONN_cb(stm32wb_at_BLE_EVT_CONN_t *param)
   if(param->status != 0)
   {
     printf("A remote device is  now connected\n");
+    global_device_connected = true;
   }
   else
   {
     printf("The remote device is  now disconnected\n");
+    global_device_connected = false;
   }
   return 0;
 }
@@ -179,7 +122,7 @@ uint8_t stm32wb_at_ll_Transmit(uint8_t *pBuff, uint16_t Size)
   bool success;
 
   success = uart_ble_send_data(pBuff, Size);
-  printf("  TX: %s",pBuff);
+  /*printf("  TX: %s",pBuff);*/
 
   if (success)
   {
@@ -198,10 +141,10 @@ uint8_t stm32wb_at_ll_Transmit(uint8_t *pBuff, uint16_t Size)
  */
 void stm32wb_at_ll_Async_receive(uint8_t new_frame)
 {
-  if(new_frame != 0)
-  {
-    printf("  RX: %s\r\n",at_buffer);
-  }
+  /*if(new_frame != 0)*/
+  /*{*/
+    /*printf("  RX: %s\r\n",at_buffer);*/
+  /*}*/
 
   uart_ble_rx_start();
 
@@ -213,23 +156,94 @@ void uart_ble_at_client_rx_cb(uint8_t data) {
 }
 
 void ble_at_client_init() {
+  global_device_connected = false;
+  global_svc_index = 0;
+
   uart_ble_rx_register_callback(uart_ble_at_client_rx_cb);
 }
 
-/*// TODO! need to combine this with cli uart rx*/
-/**
-  * @brief  Rx Transfer completed callback
-  * @param  UartHandle: UART handle
-  * @note   This example shows a simple way to report end of DMA Rx transfer, and
-  *         you can add your own implementation.
-  * @retval None
-  */
-/*void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)*/
-/*{*/
-  /*if((uint32_t)UartHandle->Instance == (uint32_t)UART4)*/
-  /*{*/
-    /*stm32wb_at_Received(received_byte);*/
-  /*}*/
 
-  /*return;*/
-/*}*/
+int ble_at_client_setup_and_run() {
+  ble_at_client_init();
+
+  BSP_LED_Init(LED_GREEN);
+  BSP_LED_Init(LED_RED);
+
+  BSP_LED_Off(LED_GREEN);
+  printf("--------------------------------------------\n");
+  printf("Run ST BLE sensor application on your smartphone and connect to you device.\n");
+  printf("--------------------------------------------\n");
+
+  HAL_Delay(2000);
+  uint8_t status = stm32wb_at_Init(&at_buffer[0], sizeof(at_buffer));
+  status |= stm32wb_at_client_Init();
+
+  if(status != 0)
+  {
+    printf("Failed to initialize AT module\n");
+    return -1;
+  }
+
+  /* Test the UART communication link with BLE module */
+  status = stm32wb_at_client_Query(BLE_TEST);
+  if (status != 0) {
+    printf("Failed to test the UART communication link with BLE module\n");
+    return -1;
+  }
+
+  HAL_Delay(100);
+
+  stm32wb_at_BLE_RST_t param_RST = { .reset = 1 };
+  status = stm32wb_at_client_Set(BLE_RST, &param_RST);
+  if (status != 0)
+  {
+    printf("Failed to reset BLE module\n");
+    return -1;
+  }
+
+  HAL_Delay(100);
+
+  /* Send a BLE AT command to start the BLE P2P server application */
+  printf("Starting the BLE P2P server application\n");
+  stm32wb_at_BLE_SVC_t param_BLE_SVC;
+  global_svc_index = 1;
+  param_BLE_SVC.index = global_svc_index;
+  status = stm32wb_at_client_Set(BLE_SVC, &param_BLE_SVC);
+  if (status != 0)
+  {
+    printf("Failed to start the BLE P2P server application\n");
+    return -1;
+  }
+
+  HAL_Delay(100);
+
+  /* Query the BLE service to check if it is running */
+  status = stm32wb_at_client_Query(BLE_SVC);
+  if (status != 0)
+  {
+    printf("Failed to query BLE service\n");
+    return -1;
+  }
+
+  HAL_Delay(100);
+
+  uint32_t start = HAL_GetTick();
+  while (HAL_GetTick() - start < 5000) {
+    if (global_svc_index == 1) {
+      break;
+    }
+  }
+
+  if (global_svc_index == 1) {
+    printf("BLE P2P server application is running\n");
+  } else {
+    printf("Failed to start the BLE P2P server application\n");
+    return -1;
+  }
+
+  return 0;
+}
+
+bool ble_at_client_device_connected() {
+  return global_device_connected;
+}

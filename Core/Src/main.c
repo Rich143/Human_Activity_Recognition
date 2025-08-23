@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "ble_at_client.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a.h"
@@ -75,7 +76,6 @@ UART_HandleTypeDef huart1;
 PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,128 +100,6 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void ble_setup_and_run() {
-  ble_at_client_init();
-
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_RED);
-
-  BSP_LED_Off(LED_GREEN);
-  printf("--------------------------------------------\n");
-  printf("Start of the STM32WB5M module AT example.\n");
-  printf("Run ST BLE sensor application on your smartphone and connect to you device.\n");
-  printf("Press user button:\n");
-  printf("  - once to notify a value.\n");
-  printf("  - twice to toggle the BLE service.\n");
-  printf("--------------------------------------------\n");
-
-  HAL_Delay(2000);
-  uint8_t status = stm32wb_at_Init(&at_buffer[0], sizeof(at_buffer));
-  status |= stm32wb_at_client_Init();
-
-  if(status != 0)
-  {
-    printf("Failed to initialize AT module\n");
-    Error_Handler();
-  }
-
-  /* Test the UART communication link with BLE module */
-  printf("Testing the UART communication link with BLE module\n");
-  status = stm32wb_at_client_Query(BLE_TEST);
-  if (status != 0) {
-    printf("Failed to test the UART communication link with BLE module\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(1000);
-
-  printf("Resetting BLE module\n");
-  stm32wb_at_BLE_RST_t param_RST = { .reset = 1 };
-  status = stm32wb_at_client_Set(BLE_RST, &param_RST);
-  if (status != 0)
-  {
-    printf("Failed to reset BLE module\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Set BLE device name */
-  printf("Setting BLE device name\n");
-  stm32wb_at_BLE_NAME_t param_BLE_NAME = {
-    .name = "STM32WB5M-Rich",
-  };
-
-  status = stm32wb_at_client_Set(BLE_NAME, &param_BLE_NAME);
-  if (status != 0)
-  {
-    printf("Failed to set BLE device name\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Query name */
-  printf("Querying BLE device name\n");
-  status = stm32wb_at_client_Query(BLE_NAME);
-  if (status != 0)
-  {
-    printf("Failed to query BLE device name\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Send a BLE AT command to start the BLE P2P server application */
-  printf("Starting the BLE P2P server application\n");
-  stm32wb_at_BLE_SVC_t param_BLE_SVC;
-  global_svc_index = 1;
-  param_BLE_SVC.index = global_svc_index;
-  status = stm32wb_at_client_Set(BLE_SVC, &param_BLE_SVC);
-  if (status != 0)
-  {
-    printf("Failed to start the BLE P2P server application\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Query the BLE service to check if it is running */
-  printf("Querying the BLE service to check if it is running\n");
-  status = stm32wb_at_client_Query(BLE_SVC);
-  if (status != 0)
-  {
-    printf("Failed to query BLE service\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Adverstise BLE Service */
-  printf("Advertising BLE Service\n");
-  stm32wb_at_BLE_ADV_t param_BLE_ADV = {
-    .enable = 1,
-  };
-  status = stm32wb_at_client_Set(BLE_ADV, &param_BLE_ADV);
-  if (status != 0)
-  {
-    printf("Failed to advertise BLE Service\n");
-    Error_Handler();
-  }
-
-  HAL_Delay(500);
-
-  /* Query advertised BLE Service */
-  printf("Querying advertised BLE Service\n");
-  status = stm32wb_at_client_Query(BLE_ADV);
-  if (status != 0)
-  {
-    printf("Failed to query advertised BLE Service\n");
-    Error_Handler();
-  }
-
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-}
 
 /* USER CODE END 0 */
 
@@ -273,6 +151,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   printf("Initializing\n\n");
+
+  config_init();
+
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
     printf("Failed to init IMU\n");
@@ -290,35 +171,55 @@ int main(void)
     while(1);
   }
 
+  cli_setup_waiting_for_input();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  ble_setup_and_run();
+  ble_at_client_setup_and_run();
+
+  uint32_t last_notify = 0;
 
   while (1)
   {
+    /* When connected we need to notify the iOS app to allow us to use the LED
+     * toggle button
+     * This also acts as a heartbeat indicator on the app
+     */
+    if (ble_at_client_device_connected() && HAL_GetTick() - last_notify > 1000) {
+      int8_t status = ble_at_client_notify();
+      if (status != 0) {
+        printf("Failed to notify ble\n");
+        while (1);
+      }
+
+      last_notify = HAL_GetTick();
+    }
+
     // Check to see if we should start the CLI
     // CLI is enabled if we receive any input
     // if enabled, application code stops
-    if (cli_check_for_input_to_enable()) {
-      cli_status = cli_start();
-      if (cli_status != CLI_STATUS_OK) {
-        printf("Failed to start CLI\n");
-        while(1);
-      }
-
-      while(1) {
-        cli_status = cli_run();
+    if (!config_get_cli_enabled()) {
+      if (cli_check_for_input_to_enable()) {
+        cli_status = cli_start();
         if (cli_status != CLI_STATUS_OK) {
-          printf("Failed to run CLI\n");
+          printf("Failed to start CLI\n");
           while(1);
         }
+
+        config_set_cli_enabled(true);
+      }
+    } else {
+      cli_status = cli_run();
+      if (cli_status != CLI_STATUS_OK) {
+        printf("Failed to run CLI\n");
+        while(1);
       }
     }
 
     /* USER CODE END WHILE */
-    /*MX_X_CUBE_AI_Process();*/
+    MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

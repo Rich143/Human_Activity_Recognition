@@ -18,10 +18,12 @@ typedef enum {
 } cli_status_t;
 
 cli_status_t cli_init();
+void cli_setup_waiting_for_input();
 cli_status_t cli_start();
 cli_status_t cli_run();
 
 /// Returns true if the CLI should be enabled
 bool cli_check_for_input_to_enable();
+
 
 #endif /* INC_CLI_H_ */

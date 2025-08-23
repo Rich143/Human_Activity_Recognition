@@ -8,6 +8,8 @@
 #ifndef INC_CONFIG_H_
 #define INC_CONFIG_H_
 
+#include <stdbool.h>
+
 
 #define LOAD_IMU_DATA_FROM_FILE             0
 #define LOAD_IMU_DATA_FROM_FILE_NAME        "Recorded_Data/pamap2_cycling_1.h"
@@ -16,8 +18,6 @@
 #define LOAD_IMU_DATA_FROM_FILE_Y_DATA      pamap2_cycling_1_y
 #define LOAD_IMU_DATA_FROM_FILE_Z_DATA      pamap2_cycling_1_z
 
-#define LOGGING_ENABLED 1
-#define LOG_PRINT_CSV 1
 #define LOG_PRINT_CSV_INCLUDE_MODEL_OUTPUT 0
 
 #define CONFIG_LOG_MAX_SAVED_ROWS 1000000
@@ -25,5 +25,19 @@
 #define CONFIG_CLI_ENABLE_KEY_PRESSES 10
 
 #define CONFIG_LOG_USE_TEST_DATA 0
+
+void config_init();
+
+void config_set_logging_enabled(bool enabled);
+
+void config_set_print_csv_data(bool enabled);
+
+bool config_get_logging_enabled();
+
+bool config_get_print_csv_enabled();
+
+bool config_get_cli_enabled();
+
+void config_set_cli_enabled(bool enabled);
 
 #endif /* INC_CONFIG_H_ */

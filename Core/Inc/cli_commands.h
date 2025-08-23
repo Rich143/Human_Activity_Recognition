@@ -56,4 +56,37 @@ static const CLI_Command_Definition_t pingCommandDefinition = {
         .cExpectedNumberOfParameters = 0,
 };
 
+BaseType_t printCSVDataCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t printCSVDataCommandDefinition = {
+        .pcCommand = "printCSV",
+        .pcHelpString = "printCSV <enabled = 0|1>: Enable printing of CSV data\r\n",
+        .pxCommandInterpreter = printCSVDataCommand,
+        .cExpectedNumberOfParameters = 1,
+};
+
+BaseType_t logEnableCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t logEnableCommandDefinition = {
+        .pcCommand = "logEnable",
+        .pcHelpString = "logEnable <enabled = 0|1>: Enable/Disable logging\r\n",
+        .pxCommandInterpreter = logEnableCommand,
+        .cExpectedNumberOfParameters = 1,
+};
+
+BaseType_t exitCLICommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t exitCLICommandDefinition = {
+        .pcCommand = "exit",
+        .pcHelpString = "exit: Exit the CLI\r\n",
+        .pxCommandInterpreter = exitCLICommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
 #endif /* INC_CLI_COMMANDS_H_ */
