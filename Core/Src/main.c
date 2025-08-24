@@ -157,6 +157,7 @@ int main(void)
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
     printf("Failed to init IMU\n");
+    while(1);
   }
 
   flash_log_status_t flash_status =
