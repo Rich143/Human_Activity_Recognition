@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-#define configCOMMAND_INT_MAX_INPUT_SIZE 100
-#define configCOMMAND_INT_MAX_OUTPUT_SIZE 100
+#define configCOMMAND_INT_MAX_INPUT_SIZE 256
+#define configCOMMAND_INT_MAX_OUTPUT_SIZE 256
 
 #define configSUPPORT_STATIC_ALLOCATION 1
 

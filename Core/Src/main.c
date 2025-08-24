@@ -163,6 +163,7 @@ int main(void)
     flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
+    while(1);
   }
 
   cli_status_t cli_status = cli_init();

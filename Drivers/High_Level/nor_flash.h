@@ -10,8 +10,9 @@
 
 #include <stdint.h>
 
-#define NOR_FLASH_SIZE         (uint32_t)(512*1024*1024/8) /* 512 Mbits => 64MBytes        */
-#define NOR_FLASH_SECTOR_SIZE  (uint32_t)(64 * 1024)       /* 1024 sectors of 64KBytes     */
+#define NOR_FLASH_SIZE           (uint32_t)(512*1024*1024/8) /* 512 Mbits => 64MBytes        */
+#define NOR_FLASH_SECTOR_SIZE    (uint32_t)(64 * 1024)       /* 1024 sectors of 64KBytes     */
+#define NOR_FLASH_SUBSECTOR_SIZE (uint32_t)(4  * 1024)       /* 16384 subsectors of 4KBytes  */
 
 typedef struct
 {
@@ -31,7 +32,9 @@ int32_t nor_flash_init();
 int32_t nor_flash_get_info(uint32_t Instance, NOR_FLash_Info_t *pInfo);
 int32_t nor_flash_get_status();
 int32_t nor_flash_erase_sector(uint32_t blockAddress);
+int32_t nor_flash_erase_chip();
 int32_t nor_flash_write(uint32_t writeAddress, uint8_t *pBuffer, uint32_t size);
 int32_t nor_flash_read(uint32_t readAddress, uint8_t *pBuffer, uint32_t size);
+int32_t nor_flash_check_cleared();
 
 #endif /* NOR_FLASH_H */

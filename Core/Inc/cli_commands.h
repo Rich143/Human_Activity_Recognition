@@ -89,4 +89,51 @@ static const CLI_Command_Definition_t exitCLICommandDefinition = {
         .cExpectedNumberOfParameters = 0,
 };
 
+BaseType_t flashDumpCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t flashDumpCommandDefinition = {
+        .pcCommand = "flashDump",
+        .pcHelpString =
+                "flashDump <address> <size>: Dump the (external nor) flash at the given address, of the given size (in 256 bytes blocks)\r\n",
+        .pxCommandInterpreter = flashDumpCommand,
+        .cExpectedNumberOfParameters = 2,
+};
+
+BaseType_t flashClearCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t flashClearCommandDefinition = {
+        .pcCommand = "flashClearSector",
+        .pcHelpString =
+                "flashClearSector <sector> <num sectors>: Clear the (external nor) flash at the given sector, of the given number of sectors\r\n",
+        .pxCommandInterpreter = flashClearCommand,
+        .cExpectedNumberOfParameters = 2,
+};
+
+BaseType_t flashClearChipCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t flashClearChipCommandDefinition = {
+        .pcCommand = "flashClearEntireChip",
+        .pcHelpString =
+                "flashClearEntireChip: Clear the (external nor) flash (entire chip).\r\n",
+        .pxCommandInterpreter = flashClearChipCommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
+BaseType_t flashClearedCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t flashClearedCommandDefinition = {
+        .pcCommand = "isFlashCleared",
+        .pcHelpString =
+                "isFlashCleared: Check if the (external nor) flash has been cleared\r\n",
+        .pxCommandInterpreter = flashClearedCommand,
+        .cExpectedNumberOfParameters = 0,
+};
 #endif /* INC_CLI_COMMANDS_H_ */

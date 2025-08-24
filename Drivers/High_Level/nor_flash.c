@@ -3,6 +3,12 @@
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_ospi.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#define FLASH_NUM_SECTORS (MX25LM51245G_FLASH_SIZE/MX25LM51245G_SECTOR_64K)
+
 int32_t nor_flash_init() {
     BSP_OSPI_NOR_Init_t Flash;
 
@@ -42,6 +48,22 @@ int32_t nor_flash_erase_sector(uint32_t blockAddress) {
                                     MX25LM51245G_ERASE_64K);
 }
 
+int32_t nor_flash_erase_chip() {
+    /// For some reason the erase chip command doesn't work
+    /// so we erase each sector one by one
+    for (int i = 0; i < FLASH_NUM_SECTORS; i++) {
+        printf("Erasing sector %d: 0x%08lX ... ", i, i * MX25LM51245G_SECTOR_64K);
+        int32_t status = nor_flash_erase_sector(i * MX25LM51245G_SECTOR_64K);
+        if (status != BSP_ERROR_NONE) {
+            printf("Failed to erase sector: %ld\n", status);
+            return status;
+        }
+        printf("Done\n");
+    }
+
+    return BSP_ERROR_NONE;
+}
+
 int32_t nor_flash_write(uint32_t writeAddress, uint8_t *pBuffer, uint32_t size)
 {
     return BSP_OSPI_NOR_Write(0, pBuffer,
@@ -51,4 +73,41 @@ int32_t nor_flash_write(uint32_t writeAddress, uint8_t *pBuffer, uint32_t size)
 int32_t nor_flash_read(uint32_t readAddress, uint8_t *pBuffer, uint32_t size) {
     return BSP_OSPI_NOR_Read(0, pBuffer,
                              readAddress, size);
+}
+
+bool buffer_ones(uint8_t *pBuffer, uint32_t size) {
+    for (int i = 0; i < size; i++) {
+        if (pBuffer[i] != 0xFF) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int32_t nor_flash_check_cleared() {
+    const uint32_t buf_size = 256;
+    uint8_t buf[buf_size];
+
+    for (int i = 0; i < FLASH_NUM_SECTORS; i++) {
+        uint32_t sector_address = i * MX25LM51245G_SECTOR_64K;
+
+        printf("Checking sector %d: 0x%08lX ... ", i, sector_address);
+
+        for (int j = 0; j < MX25LM51245G_SECTOR_64K; j += buf_size) {
+            int32_t status = nor_flash_read(sector_address + j, buf, buf_size);
+            if (status != BSP_ERROR_NONE) {
+                printf("Failed to read flash: %ld\n", status);
+                return status;
+            }
+
+            if (!buffer_ones(buf, buf_size)) {
+                printf("Failed\n");
+                return -1;
+            }
+        }
+        printf("Done\n");
+    }
+
+    return BSP_ERROR_NONE;
 }

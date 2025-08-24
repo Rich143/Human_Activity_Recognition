@@ -27,6 +27,9 @@ static_assert(sizeof(flash_log_row_t) == FLASH_LOG_ROW_SIZE,
 // Max value allowed for number of saved rows
 #define CONFIG_MAX_SAVED_ROWS (NOR_FLASH_SIZE / FLASH_LOG_ROW_SIZE)
 
+#define ALL_ONES(type) ((type)~(type)0)
+#define CLEARED_FLASH(type) ALL_ONES(type)
+
 flash_log_row_t flash_log_buffer[FLASH_LOG_BUFFER_NUM_ROWS];
 uint32_t flash_log_num_buffered_rows;
 uint32_t flash_log_num_rows;
@@ -159,6 +162,12 @@ flash_log_status_t flash_log_recover_log_pointer() {
 
         for (int i = 0; i < FLASH_LOG_BUFFER_NUM_ROWS; i++) {
             if (flash_log_buffer[i].row_start_marker != FLASH_LOG_ROW_START_MARKER) {
+                if (flash_log_buffer[i].row_start_marker !=
+                    CLEARED_FLASH(typeof (flash_log_buffer[i].row_start_marker)))
+                {
+                    printf("Corrupted log, marker is 0x%lx\n", flash_log_buffer[i].row_start_marker);
+                    return FLASH_LOG_ERROR;
+                }
                 flash_log_num_rows += i;
                 found_log_pointer = true;
                 break;

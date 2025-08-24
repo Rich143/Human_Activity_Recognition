@@ -114,6 +114,11 @@ CLI_Definition_List_Item_t logSizeCommandListItem;
 CLI_Definition_List_Item_t printCSVDataCommandListItem;
 CLI_Definition_List_Item_t logEnableCommandListItem;
 CLI_Definition_List_Item_t exitCLICommandListItem;
+CLI_Definition_List_Item_t flashDumpCommandListItem;
+CLI_Definition_List_Item_t flashClearCommandListItem;
+CLI_Definition_List_Item_t flashClearChipCommandListItem;
+CLI_Definition_List_Item_t flashClearedCommandListItem;
+
 
 cli_status_t cli_register_commands() {
     BaseType_t status = FreeRTOS_CLIRegisterCommandStatic(&pingCommandDefinition,
@@ -154,6 +159,30 @@ cli_status_t cli_register_commands() {
 
     status = FreeRTOS_CLIRegisterCommandStatic(&exitCLICommandDefinition,
                                       &exitCLICommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&flashDumpCommandDefinition,
+                                      &flashDumpCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&flashClearCommandDefinition,
+                                      &flashClearCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&flashClearChipCommandDefinition,
+                                      &flashClearChipCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&flashClearedCommandDefinition,
+                                      &flashClearedCommandListItem);
     if (status != pdPASS) {
         return CLI_STATUS_ERROR_OTHER;
     }
