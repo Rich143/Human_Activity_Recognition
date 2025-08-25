@@ -37,6 +37,10 @@ static volatile uint32_t received_enable_char_count = 0;
 void uart_rx_cb_check_for_enable_input(uint8_t data) {
     if (data == enable_char) {
         received_enable_char_count++;
+    } else if (received_enable_char_count >= CONFIG_CLI_ENABLE_KEY_PRESSES
+               && (data == '\n' || data == '\r')) {
+        // Ignore carriage returns and newlines if we've received enough enable chars
+        return;
     } else {
         received_enable_char_count = 0;
     }
