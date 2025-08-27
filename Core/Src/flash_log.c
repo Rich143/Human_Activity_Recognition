@@ -158,7 +158,10 @@ flash_log_status_t flash_log_recover_log_pointer() {
     flash_log_num_rows = 0;
 
     while (!found_log_pointer && readAddress < FLASH_LOG_SIZE) {
-        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        if (status != 0) {
+            return FLASH_LOG_ERROR;
+        }
 
         for (int i = 0; i < FLASH_LOG_BUFFER_NUM_ROWS; i++) {
             if (flash_log_buffer[i].row_start_marker != FLASH_LOG_ROW_START_MARKER) {
@@ -200,7 +203,10 @@ flash_log_status_t flash_log_print_csv() {
     printf("model_output_0,model_output_1,model_output_2,output_class\n");
 
     for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
-        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        if (status != 0) {
+            return FLASH_LOG_ERROR;
+        }
 
         for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
             flash_log_row_t *row = &flash_log_buffer[j];
@@ -253,7 +259,10 @@ flash_log_status_t flash_log_send_over_uart() {
     uint32_t num_rows = flash_log_get_num_log_entries();
 
     for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
-        nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        if (status != 0) {
+            return FLASH_LOG_ERROR;
+        }
 
         for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
             flash_log_row_t *row = &flash_log_buffer[j];
@@ -309,7 +318,11 @@ flash_log_status_t flash_log_clear_logs() {
 
     uint32_t eraseAddress = 0;
     for (uint32_t i = 0; i < numSectors; i++) {
-        nor_flash_erase_sector(eraseAddress);
+        int32_t status = nor_flash_erase_sector(eraseAddress);
+        if (status != 0) {
+            return FLASH_LOG_ERROR;
+        }
+
         eraseAddress += NOR_FLASH_SECTOR_SIZE;
     }
 
