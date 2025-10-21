@@ -14,7 +14,8 @@ accel_data_t window;
 void init_imu_manager_test(void) {
     motion_sensor_init_ExpectAndReturn(MOTION_SENSOR_ACCEL, BSP_ERROR_NONE);
     motion_sensor_enable_ExpectAndReturn(MOTION_SENSOR_ACCEL, BSP_ERROR_NONE);
-    motions_sensor_set_output_data_rate_ExpectAndReturn(MOTION_SENSOR_ACCEL, IMU_SAMPLING_FREQUENCY_HZ, BSP_ERROR_NONE);
+    motion_sensor_set_output_data_rate_ExpectAndReturn(MOTION_SENSOR_ACCEL, IMU_SAMPLING_FREQUENCY_HZ, BSP_ERROR_NONE);
+    motion_sensor_set_full_scale_ExpectAndReturn(MOTION_SENSOR_ACCEL, IMU_FULL_SCALE_G, BSP_ERROR_NONE);
     imu_manager_init();
 }
 

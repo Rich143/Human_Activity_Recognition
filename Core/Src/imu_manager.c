@@ -6,6 +6,7 @@
  */
 
 #include "imu_manager.h"
+#include "High_Level/motion_sensor_interface.h"
 #include "accel_data_type.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "stm32u5xx_hal.h"
@@ -23,8 +24,11 @@ int imu_manager_init(void) {
   status = motion_sensor_enable(MOTION_SENSOR_ACCEL);
   if (status != BSP_ERROR_NONE) return status;
 
-  status = motions_sensor_set_output_data_rate(MOTION_SENSOR_ACCEL,
+  status = motion_sensor_set_output_data_rate(MOTION_SENSOR_ACCEL,
                                                IMU_SAMPLING_FREQUENCY_HZ);
+  if (status != BSP_ERROR_NONE) return status;
+
+  status = motion_sensor_set_full_scale(MOTION_SENSOR_ACCEL, IMU_FULL_SCALE_G);
   if (status != BSP_ERROR_NONE) return status;
 
   return status;

@@ -136,4 +136,16 @@ static const CLI_Command_Definition_t flashClearedCommandDefinition = {
         .pxCommandInterpreter = flashClearedCommand,
         .cExpectedNumberOfParameters = 0,
 };
+
+BaseType_t getIMUScaleCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t getIMUScaleCommandDefinition = {
+        .pcCommand = "imuScale",
+        .pcHelpString =
+                "imuScale: Get the current IMU scale (in g)\r\n",
+        .pxCommandInterpreter = getIMUScaleCommand,
+        .cExpectedNumberOfParameters = 0,
+};
 #endif /* INC_CLI_COMMANDS_H_ */

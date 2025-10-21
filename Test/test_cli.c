@@ -1,10 +1,12 @@
 #include "FreeRTOS_Types.h"
+#include "config.h"
 #include "unity.h"
 
 #include "mock_uart.h"
 #include "mock_cli_commands.h"
 #include "mock_cmsis_gcc.h"
 #include "mock_stm32u5xx_hal.h"
+#include "mock_config.h"
 
 #include "cli.h"
 #include "uart.h"
@@ -32,10 +34,15 @@ void mock_cmsis_gcc() {
     __set_PRIMASK_Ignore();
 }
 
+void mock_config() {
+    config_get_cli_enabled_IgnoreAndReturn(true);
+}
+
 static bool cli_initialised = false;
 
 void setUp(void)
 {
+    mock_config();
     mock_cmsis_gcc();
 
     uart_cli_rx_start_Ignore();

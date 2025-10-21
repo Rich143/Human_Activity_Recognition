@@ -18,6 +18,8 @@
 #define IMU_WINDOW_SIZE 24
 //! IMU sampling frequency, this will correspond to 104 Hz for the ISM330DHCX
 #define IMU_SAMPLING_FREQUENCY_HZ 100.0F
+//! IMU Full Scale (in g), set to 4g which should avoid clipping for all HAR activities
+#define IMU_FULL_SCALE_G 4
 
 
 /**

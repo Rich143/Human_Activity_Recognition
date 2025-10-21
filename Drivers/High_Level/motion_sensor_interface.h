@@ -26,10 +26,15 @@ int32_t motion_sensor_init(motion_sensor_type_t type);
 int32_t motion_sensor_enable(motion_sensor_type_t type);
 int32_t motion_sensor_disable(motion_sensor_type_t type);
 
-int32_t motions_sensor_set_output_data_rate(motion_sensor_type_t type, float Odr);
+int32_t motion_sensor_set_output_data_rate(motion_sensor_type_t type, float Odr);
+
+int32_t motion_sensor_get_full_scale(motion_sensor_type_t type, int32_t
+                                     *full_scale);
+
+int32_t motion_sensor_set_full_scale(motion_sensor_type_t type,
+                                     int32_t full_scale);
 
 int32_t motion_sensor_get_axes(motion_sensor_type_t type, motion_sensor_axes_t *axes);
-
 #ifdef __cplusplus
 }
 #endif

@@ -81,7 +81,7 @@ int32_t motion_sensor_disable(motion_sensor_type_t type) {
     return BSP_MOTION_SENSOR_Disable(instance, function);
 }
 
-int32_t motions_sensor_set_output_data_rate(motion_sensor_type_t type, float Odr)
+int32_t motion_sensor_set_output_data_rate(motion_sensor_type_t type, float Odr)
 {
     uint32_t function, instance;
 
@@ -92,4 +92,34 @@ int32_t motions_sensor_set_output_data_rate(motion_sensor_type_t type, float Odr
     }
 
     return BSP_MOTION_SENSOR_SetOutputDataRate(instance, function, Odr);
+}
+
+int32_t motion_sensor_get_full_scale(motion_sensor_type_t type,
+                                     int32_t *full_scale)
+{
+    uint32_t function, instance;
+
+    int32_t ret = get_function_instance(type, &function, &instance);
+    if (ret != 0) {
+        return ret;
+    }
+
+    return BSP_MOTION_SENSOR_GetFullScale(instance,
+                                          function,
+                                          full_scale);
+}
+
+int32_t motion_sensor_set_full_scale(motion_sensor_type_t type,
+                                     int32_t full_scale)
+{
+    uint32_t function, instance;
+
+    int32_t ret = get_function_instance(type, &function, &instance);
+    if (ret != 0) {
+        return ret;
+    }
+
+    return BSP_MOTION_SENSOR_SetFullScale(instance,
+                                          function,
+                                          full_scale);
 }

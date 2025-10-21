@@ -8,6 +8,7 @@
 #include "cli_commands.h"
 #include "FreeRTOS_CLI.h"
 #include "FreeRTOS_Types.h"
+#include "High_Level/motion_sensor_interface.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "ble_at_client.h"
 #include "flash_log.h"
@@ -231,5 +232,21 @@ BaseType_t flashClearedCommand(char *pcWriteBuffer, size_t xWriteBufferLen, cons
         return pdFALSE;
     }
     snprintf(pcWriteBuffer, xWriteBufferLen, "Flash cleared\n");
+    return pdFALSE;
+}
+
+BaseType_t getIMUScaleCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    int32_t full_scale;
+
+    int32_t status = motion_sensor_get_full_scale(MOTION_SENSOR_ACCEL,
+                                                  &full_scale);
+    if (status != BSP_ERROR_NONE) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Error getting IMU scale\n");
+        return pdFALSE;
+    }
+
+    snprintf(pcWriteBuffer, xWriteBufferLen, "IMU Full Scale: ±%ld g\n", full_scale);
+
     return pdFALSE;
 }
