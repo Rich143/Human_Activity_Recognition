@@ -226,6 +226,7 @@ void print_imu_csv_2(const accel_data_t *unproc,
                    const ai_input_data_t *proc,
                    const float *model_output,
                    uint32_t output_class,
+                   bool model_enabled,
                    int window_size) {
     for (int i = 0; i < window_size; i++) {
         printf("%.6f,%.6f,%.6f,", unproc->x[i], unproc->y[i], unproc->z[i]);
@@ -235,27 +236,35 @@ void print_imu_csv_2(const accel_data_t *unproc,
                AI_INPUT_GET_Y(proc->data_array, i),
                AI_INPUT_GET_Z(proc->data_array, i));
 
-        for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
-            printf("%f,", model_output[k]);
+        if (model_enabled) {
+            for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
+                printf("%f,", model_output[k]);
+            }
+
+            printf("%lu\n", output_class);
+        } else {
+            for (uint32_t k = 0; k < AI_OUTPUT_CHANNEL; ++k) {
+                printf("0,");
+            }
+
+            printf("0\n", output_class);
         }
-
-        printf("%lu\n", output_class);
     }
 }
 
-void print_imu_csv(const accel_data_t *unproc,
-                   const accel_data_t *lpf,
-                   const ai_input_data_t *proc,
-                   int window_size) {
-    for (int i = 0; i < window_size; i++) {
-        printf("%.6f,%.6f,%.6f,", unproc->x[i], unproc->y[i], unproc->z[i]);
-        printf("%.6f,%.6f,%.6f,", lpf->x[i], lpf->y[i], lpf->z[i]);
-        printf("%.6f,%.6f,%.6f\n",
-               AI_INPUT_GET_X(proc->data_array, i),
-               AI_INPUT_GET_Y(proc->data_array, i),
-               AI_INPUT_GET_Z(proc->data_array, i));
-    }
-}
+/*void print_imu_csv(const accel_data_t *unproc,*/
+                   /*const accel_data_t *lpf,*/
+                   /*const ai_input_data_t *proc,*/
+                   /*int window_size) {*/
+    /*for (int i = 0; i < window_size; i++) {*/
+        /*printf("%.6f,%.6f,%.6f,", unproc->x[i], unproc->y[i], unproc->z[i]);*/
+        /*printf("%.6f,%.6f,%.6f,", lpf->x[i], lpf->y[i], lpf->z[i]);*/
+        /*printf("%.6f,%.6f,%.6f\n",*/
+               /*AI_INPUT_GET_X(proc->data_array, i),*/
+               /*AI_INPUT_GET_Y(proc->data_array, i),*/
+               /*AI_INPUT_GET_Z(proc->data_array, i));*/
+    /*}*/
+/*}*/
 
 void save_model_input_data(ai_input_data_t *input, ai_input_data_t *saved, int
                            window_size)
@@ -336,8 +345,12 @@ int get_max_value(float *data_array, int len) {
     return max_idx;
 }
 
-int post_process(ai_i8* data[], log_data_t *log_data)
+int post_process(ai_i8* data[], log_data_t *log_data, bool model_enabled)
 {
+    if (!model_enabled) {
+        return 0;
+    }
+
     float *data_array = (float *)data[0];
 
     /*printf("Model output: %lf, %lf, %lf, %lf\n", data_array[0], data_array[1],*/
@@ -368,6 +381,34 @@ int post_process(ai_i8* data[], log_data_t *log_data)
 
     return 0;
 }
+
+void handle_log_and_print(log_data_t *log_data, bool model_enabled) {
+    if (config_get_logging_enabled()) {
+        flash_log_status_t status = flash_log_write_window(
+            log_data->input,
+            log_data->filtered,
+            log_data->network_input,
+            log_data->model_output,
+            log_data->output_class,
+            model_enabled,
+            IMU_WINDOW_SIZE);
+
+        if (status != FLASH_LOG_OK) {
+            printf("Failed to write window to flash: %d\n", status);
+            while(1);
+        }
+    }
+
+    if (config_get_print_csv_enabled()) {
+        print_imu_csv_2(log_data->input,
+                        log_data->filtered,
+                        log_data->network_input,
+                        log_data->model_output,
+                        log_data->output_class,
+                        model_enabled,
+                        IMU_WINDOW_SIZE);
+    }
+}
 /* USER CODE END 2 */
 
 /* Entry points --------------------------------------------------------------*/
@@ -392,6 +433,8 @@ void MX_X_CUBE_AI_Process(void)
     /* USER CODE BEGIN 6 */
     int res = -1;
 
+    bool model_enabled = config_get_predictions_enabled();
+
     if (network) {
         BSP_LED_Toggle(LED_RED);
 
@@ -401,33 +444,17 @@ void MX_X_CUBE_AI_Process(void)
 
         /* 2 - process the data - call inference engine */
         if (status == PREPROCESS_STATUS_OK) {
-            res = ai_run();
+            if (model_enabled) {
+                res = ai_run();
+            } else {
+                res = 0;
+            }
             /* 3- post-process the predictions */
             if (res == 0) {
-                res = post_process(data_outs, &log_data);
+                res = post_process(data_outs, &log_data, model_enabled);
 
-                if (config_get_logging_enabled()) {
-                    flash_log_status_t status = flash_log_write_window(
-                        log_data.input,
-                        log_data.filtered,
-                        log_data.network_input,
-                        log_data.model_output,
-                        log_data.output_class,
-                        IMU_WINDOW_SIZE);
-
-                    if (status != FLASH_LOG_OK) {
-                        printf("Failed to write window to flash: %d\n", status);
-                        while(1);
-                    }
-                }
-
-                if (config_get_print_csv_enabled()) {
-                    print_imu_csv_2(log_data.input,
-                                    log_data.filtered,
-                                    log_data.network_input,
-                                    log_data.model_output,
-                                    log_data.output_class,
-                                    IMU_WINDOW_SIZE);
+                if (res == 0) {
+                    handle_log_and_print(&log_data, model_enabled);
                 }
             }
         } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {

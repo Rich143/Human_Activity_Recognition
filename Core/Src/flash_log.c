@@ -102,6 +102,7 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
                                           const ai_input_data_t *proc,
                                           const float *model_output,
                                           uint32_t output_class,
+                                          bool model_enabled,
                                           int window_size)
 {
     if (window_size > FLASH_LOG_BUFFER_NUM_ROWS) {
@@ -128,7 +129,7 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
         row->proc_y = AI_INPUT_GET_Y(proc->data_array, i);
         row->proc_z = AI_INPUT_GET_Z(proc->data_array, i);
 
-        if (i == (window_size - 1)) {
+        if (model_enabled && i == (window_size - 1)) {
             row->contains_output = 1;
 
             for (int j = 0; j < AI_OUTPUT_CHANNEL; j++) {

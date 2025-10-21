@@ -26,6 +26,8 @@
 
 #define CONFIG_LOG_USE_TEST_DATA 0
 
+#define CONFIG_PREDICTIONS_ENBLED_DEFAULT 0
+
 void config_init();
 
 void config_set_logging_enabled(bool enabled);
@@ -39,5 +41,9 @@ bool config_get_print_csv_enabled();
 bool config_get_cli_enabled();
 
 void config_set_cli_enabled(bool enabled);
+
+void config_set_predictions_enabled(bool enabled);
+
+bool config_get_predictions_enabled();
 
 #endif /* INC_CONFIG_H_ */

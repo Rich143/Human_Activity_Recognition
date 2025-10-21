@@ -123,6 +123,7 @@ CLI_Definition_List_Item_t flashClearCommandListItem;
 CLI_Definition_List_Item_t flashClearChipCommandListItem;
 CLI_Definition_List_Item_t flashClearedCommandListItem;
 CLI_Definition_List_Item_t getIMUScaleCommandListItem;
+CLI_Definition_List_Item_t enablePredictionsCommandListItem;
 
 
 cli_status_t cli_register_commands() {
@@ -194,6 +195,12 @@ cli_status_t cli_register_commands() {
 
     status = FreeRTOS_CLIRegisterCommandStatic(&getIMUScaleCommandDefinition,
                                       &getIMUScaleCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&enablePredictionsCommandDefinition,
+                                      &enablePredictionsCommandListItem);
     if (status != pdPASS) {
         return CLI_STATUS_ERROR_OTHER;
     }

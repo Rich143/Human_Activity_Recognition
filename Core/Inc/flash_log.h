@@ -12,6 +12,7 @@
 #include "ai_input_data_type.h"
 #include "High_Level/nor_flash.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum {
@@ -29,6 +30,7 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
                                           const ai_input_data_t *proc,
                                           const float *model_output,
                                           uint32_t output_class,
+                                          bool model_enabled,
                                           int window_size);
 
 flash_log_status_t flash_log_recover_log_pointer(void);

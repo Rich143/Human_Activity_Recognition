@@ -170,7 +170,7 @@ void test_single_write() {
 
     nor_flash_write_ExpectWithArrayAndReturn(0, (uint8_t *)&expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
 
-    TEST_FLASH_LOG_OK(flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, 1));
+    TEST_FLASH_LOG_OK(flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, true, 1));
 }
 
 test_log_input_data_t *get_log_input_data_double_write() {
@@ -305,6 +305,7 @@ void test_double_write() {
                            &testLogInputData->ai_input,
                            testLogInputData->model_output,
                            testLogInputData->output_class,
+                           true,
                            2));
 }
 
@@ -328,6 +329,7 @@ void test_multiple_double_writes() {
                                                  &testLogInputData->ai_input,
                                                  testLogInputData->model_output,
                                                  testLogInputData->output_class,
+                                                 true,
                                                  2));
     }
 
@@ -347,6 +349,7 @@ void test_fill_log() {
                                                  &testLogInputData->ai_input,
                                                  testLogInputData->model_output,
                                                  testLogInputData->output_class,
+                                                 true,
                                                  2));
     }
 
@@ -355,6 +358,7 @@ void test_fill_log() {
                                              &testLogInputData->ai_input,
                                              testLogInputData->model_output,
                                              testLogInputData->output_class,
+                                             true,
                                              2),
                           FLASH_LOG_FULL);
 }
@@ -482,4 +486,76 @@ void test_print_log_csv() {
 
     flash_log_print_csv();
 #endif
+}
+
+flash_log_row_t *
+get_expected_rows_double_write_model_disabled(test_log_input_data_t *testLogInputData,
+                                              flash_log_row_t *testExpectedRows)
+{
+    flash_log_row_t expected_row_0 = {
+        .row_start_marker = FLASH_LOG_ROW_START_MARKER,
+
+        .unproc_x = testLogInputData->unproc.x[0],
+        .unproc_y = testLogInputData->unproc.y[0],
+        .unproc_z = testLogInputData->unproc.z[0],
+
+        .lowpass_filtered_x = testLogInputData->filtered.x[0],
+        .lowpass_filtered_y = testLogInputData->filtered.y[0],
+        .lowpass_filtered_z = testLogInputData->filtered.z[0],
+
+        .proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 0),
+        .proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 0),
+        .proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 0),
+
+        .model_output = {0, 0, 0, 0},
+        .output_class = 0,
+        .contains_output = 0,
+    };
+
+    flash_log_row_t expected_row_1 = {
+        .row_start_marker = FLASH_LOG_ROW_START_MARKER,
+
+        .unproc_x = testLogInputData->unproc.x[1],
+        .unproc_y = testLogInputData->unproc.y[1],
+        .unproc_z = testLogInputData->unproc.z[1],
+
+        .lowpass_filtered_x = testLogInputData->filtered.x[1],
+        .lowpass_filtered_y = testLogInputData->filtered.y[1],
+        .lowpass_filtered_z = testLogInputData->filtered.z[1],
+
+        .proc_x = AI_INPUT_GET_X(testLogInputData->ai_input.data_array, 1),
+        .proc_y = AI_INPUT_GET_Y(testLogInputData->ai_input.data_array, 1),
+        .proc_z = AI_INPUT_GET_Z(testLogInputData->ai_input.data_array, 1),
+
+        .model_output = {0, 0, 0, 0},
+        .output_class = 0,
+        .contains_output = 0,
+    };
+
+    memcpy(&testExpectedRows[0], &expected_row_0, sizeof(flash_log_row_t));
+    memcpy(&testExpectedRows[1], &expected_row_1, sizeof(flash_log_row_t));
+
+    return testExpectedRows;
+}
+
+void test_double_write_model_disabled() {
+    test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
+
+    initTestFlash(2);
+
+    flash_log_row_t *expectedRows = get_expected_rows_double_write_model_disabled(testLogInputData, gTestExpectedRows);
+
+    nor_flash_write_ExpectWithArrayAndReturn(0,
+                                             (uint8_t *)expectedRows,
+                                             2 * sizeof(flash_log_row_t),
+                                             2 * sizeof(flash_log_row_t),
+                                             BSP_ERROR_NONE);
+
+    TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
+                           &testLogInputData->filtered,
+                           &testLogInputData->ai_input,
+                           testLogInputData->model_output,
+                           testLogInputData->output_class,
+                           false,
+                           2));
 }

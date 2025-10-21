@@ -148,4 +148,16 @@ static const CLI_Command_Definition_t getIMUScaleCommandDefinition = {
         .pxCommandInterpreter = getIMUScaleCommand,
         .cExpectedNumberOfParameters = 0,
 };
+
+BaseType_t enablePredictionsCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t enablePredictionsCommandDefinition = {
+        .pcCommand = "predictionsEnable",
+        .pcHelpString =
+                "predictionsEnable <0|1>: Enable (1)/Disable (0) predictions from the model. With this on, data collection rate is decreased (since the model running takes some time)\r\n",
+        .pxCommandInterpreter = enablePredictionsCommand,
+        .cExpectedNumberOfParameters = 1,
+};
 #endif /* INC_CLI_COMMANDS_H_ */

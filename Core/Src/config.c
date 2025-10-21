@@ -11,6 +11,7 @@
 bool logging_enabled = false;
 bool print_csv_enabled = false;
 bool cli_enabled = false;
+bool predictions_enabled = CONFIG_PREDICTIONS_ENBLED_DEFAULT;
 
 void config_init() {
   logging_enabled = false;
@@ -40,4 +41,12 @@ bool config_get_cli_enabled() {
 
 void config_set_cli_enabled(bool enabled) {
   cli_enabled = enabled;
+}
+
+void config_set_predictions_enabled(bool enabled) {
+  predictions_enabled = enabled;
+}
+
+bool config_get_predictions_enabled() {
+  return predictions_enabled;
 }

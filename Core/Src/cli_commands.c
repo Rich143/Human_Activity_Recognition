@@ -250,3 +250,23 @@ BaseType_t getIMUScaleCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const
 
     return pdFALSE;
 }
+
+BaseType_t enablePredictionsCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const
+                             char *pcCommandString)
+{
+    uint32_t paramterStringLength;
+    const char * enable = FreeRTOS_CLIGetParameter(pcCommandString,
+                                                    1,
+                                                    &paramterStringLength);
+
+    uint8_t enabled = (uint8_t)atoi(enable);
+    if (enabled != 1 && enabled != 0) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Invalid value for enable param\n");
+        return pdFALSE;
+    }
+
+    snprintf(pcWriteBuffer, xWriteBufferLen, "Predictions Enabled %u\n", enabled);
+    config_set_predictions_enabled(enabled);
+
+    return pdFALSE;
+}
