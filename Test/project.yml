@@ -102,6 +102,7 @@
     - ../Core/Inc
     - ../Core/Src
     - ../Drivers/CMSIS-DSP/Source/FilteringFunctions/
+    - ../Drivers/High_Level
     - ../Lib
   :include:
     - ../Core/Inc
