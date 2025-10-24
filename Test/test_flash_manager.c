@@ -64,6 +64,16 @@ void test_write_data_logs_out_of_bounds() {
                                               write_address, buffer, sizeof(buffer)));
 }
 
+void test_read_data_logs() {
+    uint8_t buffer[32];
+
+    nor_flash_read_ExpectAndReturn(0, buffer, sizeof(buffer), BSP_ERROR_NONE);
+    nor_flash_read_IgnoreArg_pBuffer();
+
+    TEST_FLASH_MANAGER_OK(flash_manager_read(FLASH_REGION_DATA_LOGS,
+                                              0, buffer, sizeof(buffer)));
+}
+
 void test_write_error_logs() {
     uint32_t write_address =
         FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
@@ -105,4 +115,101 @@ void test_write_error_logs_out_of_bounds() {
                                                   write_address_region,
                                                   buffer,
                                                   sizeof(buffer)));
+}
+
+void test_read_error_logs() {
+    uint32_t read_address =
+        FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+
+    uint8_t buffer[32];
+
+    nor_flash_read_ExpectAndReturn(read_address, buffer, sizeof(buffer), BSP_ERROR_NONE);
+    nor_flash_read_IgnoreArg_pBuffer();
+    nor_flash_read_IgnoreArg_size();
+
+    TEST_FLASH_MANAGER_OK(flash_manager_read(FLASH_REGION_ERROR_LOGS,
+                                              0, buffer, sizeof(buffer)));
+}
+
+
+void test_data_logs_erase() {
+    nor_flash_erase_sector_ExpectAndReturn(0, BSP_ERROR_NONE);
+
+    TEST_FLASH_MANAGER_OK(flash_manager_erase_sector(FLASH_REGION_DATA_LOGS, 0));
+}
+
+void test_error_logs_erase() {
+    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+
+    nor_flash_erase_sector_ExpectAndReturn(erase_address, BSP_ERROR_NONE);
+
+    TEST_FLASH_MANAGER_OK(flash_manager_erase_sector(FLASH_REGION_ERROR_LOGS, 0));
+}
+
+void test_data_logs_erase_another_sector() {
+    uint32_t sector = 5;
+    uint32_t erase_address = sector * NOR_FLASH_SECTOR_SIZE;
+
+    nor_flash_erase_sector_ExpectAndReturn(erase_address, BSP_ERROR_NONE);
+
+    TEST_FLASH_MANAGER_OK(flash_manager_erase_sector(FLASH_REGION_DATA_LOGS, sector));
+}
+
+void test_error_logs_erase_another_sector() {
+    uint32_t sector = 1;
+    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+    erase_address += sector * NOR_FLASH_SECTOR_SIZE;
+
+    nor_flash_erase_sector_ExpectAndReturn(erase_address, BSP_ERROR_NONE);
+
+    TEST_FLASH_MANAGER_OK(flash_manager_erase_sector(FLASH_REGION_ERROR_LOGS, sector));
+}
+
+void test_data_logs_erase_out_of_bounds() {
+    uint32_t sector = FLASH_MANAGER_DATA_LOG_SIZE_SECTORS;
+    uint32_t erase_address = sector * NOR_FLASH_SECTOR_SIZE;
+
+    TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_OUT_OF_BOUNDS,
+                              flash_manager_erase_sector(FLASH_REGION_DATA_LOGS, sector));
+}
+
+void test_error_logs_erase_out_of_bounds() {
+    uint32_t sector = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS;
+    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+    erase_address += sector * NOR_FLASH_SECTOR_SIZE;
+
+    TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_OUT_OF_BOUNDS,
+                              flash_manager_erase_sector(FLASH_REGION_ERROR_LOGS, sector));
+}
+
+void test_read_error() {
+    uint8_t buffer[32];
+
+    nor_flash_read_ExpectAndReturn(0, buffer, sizeof(buffer), BSP_ERROR_PERIPH_FAILURE);
+    nor_flash_read_IgnoreArg_pBuffer();
+    nor_flash_read_IgnoreArg_size();
+    nor_flash_read_IgnoreArg_readAddress();
+
+    TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_FLASH_READ,
+                              flash_manager_read(FLASH_REGION_ERROR_LOGS, 0, buffer, sizeof(buffer)));
+}
+
+void test_write_error() {
+    uint8_t buffer[32];
+
+    nor_flash_write_ExpectAndReturn(0, buffer, sizeof(buffer), BSP_ERROR_PERIPH_FAILURE);
+    nor_flash_write_IgnoreArg_pBuffer();
+    nor_flash_write_IgnoreArg_size();
+    nor_flash_write_IgnoreArg_writeAddress();
+
+    TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_FLASH_WRITE,
+                              flash_manager_write(FLASH_REGION_ERROR_LOGS, 0, buffer, sizeof(buffer)));
+}
+
+void test_erase_error() {
+    nor_flash_erase_sector_ExpectAndReturn(0, BSP_ERROR_PERIPH_FAILURE);
+    nor_flash_erase_sector_IgnoreArg_blockAddress();
+
+    TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_FLASH_ERASE,
+                              flash_manager_erase_sector(FLASH_REGION_ERROR_LOGS, 0));
 }
