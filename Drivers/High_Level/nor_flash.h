@@ -15,6 +15,8 @@
 #define NOR_FLASH_SUBSECTOR_SIZE (uint32_t)(4  * 1024)       /* 16384 subsectors of 4KBytes  */
 #define NOR_FLASH_NUM_SECTORS    (uint32_t)(NOR_FLASH_SIZE/NOR_FLASH_SECTOR_SIZE)
 
+#define NOR_FLASH_PAGE_SIZE      (uint32_t)256                /* 262144 pages of 256 Bytes   */
+
 typedef struct
 {
   uint32_t FlashSize;                        /*!< Size of the flash                             */

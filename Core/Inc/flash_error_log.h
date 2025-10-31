@@ -16,16 +16,25 @@ typedef uint16_t error_code_t;
 typedef uint32_t error_code_data_t;
 
 typedef enum {
-    ERROR_AI_ERROR,
     ERROR_IMU_READ_ERROR,
+    ERROR_IMU_INIT_ERROR,
+
     ERROR_PREPROCESS_ERROR,
-    ERROR_LOG_WRITE_ERROR,
+
+    ERROR_LOG_INIT_ERROR,
+
+    ERROR_CLI_INIT_ERROR,
+
+    ERROR_BLE_NOTIFY_ERROR,
 } error_code_values_t;
 
 typedef enum {
-    DATA_NONE,
-    DATA_BSP_ERROR_CODE, // BSP error code (iot2a errno .h)
-    DATA_PREPROCESS_STATUS, // preprocess_status_t
+    ERROR_DATA_NONE,
+    ERROR_DATA_BSP_ERROR_CODE, // BSP error code (iot2a errno .h)
+    ERROR_DATA_PREPROCESS_STATUS, // preprocess_status_t
+    ERROR_DATA_FLASH_LOG_STATUS, // flash_log_status_t
+    ERROR_DATA_CLI_STATUS, // cli_status_t
+    ERROR_DATA_BLE_STATUS, // ble error code
 } error_data_types_t;
 
 typedef struct {
@@ -37,11 +46,23 @@ typedef struct {
 
 // TODO: Ensure one entry per error code value
 static const ErrorDef error_registry[] = {
-    { .code = ERROR_IMU_READ_ERROR, .data = DATA_BSP_ERROR_CODE,
+    { .code = ERROR_IMU_READ_ERROR, .data = ERROR_DATA_BSP_ERROR_CODE,
         .error_name = "IMU_READ_ERROR", .data_label = "BSP Error Code" },
+    { .code = ERROR_IMU_INIT_ERROR, .data = ERROR_DATA_BSP_ERROR_CODE,
+        .error_name = "IMU_INIT_ERROR", .data_label = "BSP Error Code" },
 
-    { .code = ERROR_PREPROCESS_ERROR, .data = DATA_PREPROCESS_STATUS,
+
+    { .code = ERROR_PREPROCESS_ERROR, .data = ERROR_DATA_PREPROCESS_STATUS,
         .error_name = "PREPROCESS_ERROR", .data_label = "Preprocess Status" },
+
+    { .code = ERROR_LOG_INIT_ERROR, .data = ERROR_DATA_FLASH_LOG_STATUS,
+        .error_name = "ERROR_LOG_INIT_ERROR", .data_label = "flash_log_status_t" },
+
+    { .code = ERROR_CLI_INIT_ERROR, .data = ERROR_DATA_CLI_STATUS,
+        .error_name = "ERROR_CLI_INIT_ERROR", .data_label = "cli_status_t" },
+
+    { .code = ERROR_BLE_NOTIFY_ERROR, .data = ERROR_DATA_BLE_STATUS,
+        .error_name = "ERROR_BLE_NOTIFY_ERROR", .data_label = "BLE Error Code" },
 };
 
 typedef enum {
@@ -53,11 +74,13 @@ typedef enum {
     ERROR_LOG_FLASH_WRITE_ERROR,
     ERROR_LOG_FLASH_READ_ERROR,
     ERROR_LOG_FLASH_ERASE_ERROR,
+    ERROR_LOG_CORRUPT_LOG_ERROR,
     ERROR_LOG_ERROR,
 } error_log_status_t;
 
 error_log_status_t error_log_init();
 
+// TODO: Check data type is correct
 error_log_status_t error_log(error_code_t error_code,
                              error_data_types_t data_type,
                              error_code_data_t data);

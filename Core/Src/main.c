@@ -39,6 +39,7 @@
 #include "stm32u5xx_hal_gpio.h"
 #include "config.h"
 #include "cli.h"
+#include "flash_error_log.h"
 
 /* USER CODE END Includes */
 
@@ -154,9 +155,13 @@ int main(void)
 
   config_init();
 
+  // TODO: Init flash error log first
+
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
     printf("Failed to init IMU\n");
+    error_log(ERROR_IMU_INIT_ERROR,
+              ERROR_DATA_BSP_ERROR_CODE, status);
     while(1);
   }
 
@@ -164,12 +169,16 @@ int main(void)
     flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
+    error_log(ERROR_FLASH_LOG_INIT_ERROR,
+              ERROR_DATA_FLASH_LOG_STATUS, flash_status);
     while(1);
   }
 
   cli_status_t cli_status = cli_init();
   if (cli_status != CLI_STATUS_OK) {
     printf("Failed to init CLI\n");
+    error_log(ERROR_CLI_INIT_ERROR,
+              ERROR_DATA_CLI_STATUS, cli_status);
     while(1);
   }
 
@@ -193,6 +202,9 @@ int main(void)
       int8_t status = ble_at_client_notify();
       if (status != 0) {
         printf("Failed to notify ble\n");
+        error_log(ERROR_BLE_NOTIFY_ERROR,
+                  ERROR_DATA_BLE_STATUS, status);
+        // TODO: don't need to hang?
         while (1);
       }
 

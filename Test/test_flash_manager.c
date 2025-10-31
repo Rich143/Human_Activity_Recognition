@@ -213,3 +213,22 @@ void test_erase_error() {
     TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_FLASH_ERASE,
                               flash_manager_erase_sector(FLASH_REGION_ERROR_LOGS, 0));
 }
+
+void test_get_region() {
+    flash_region_t *region;
+
+    region = flash_manager_get_region(FLASH_REGION_DATA_LOGS);
+
+    TEST_ASSERT_NOT_NULL(region);
+    TEST_ASSERT_EQUAL_UINT32(region->start_sector, FLASH_MANAGER_DATA_LOG_SECTOR_START);
+    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, FLASH_MANAGER_DATA_LOG_SIZE_SECTORS);
+
+    region = flash_manager_get_region(FLASH_REGION_ERROR_LOGS);
+
+    TEST_ASSERT_NOT_NULL(region);
+    TEST_ASSERT_EQUAL_UINT32(region->start_sector, FLASH_MANAGER_ERROR_LOG_SECTOR_START);
+    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS);
+
+    region = flash_manager_get_region(FLASH_REGION_COUNT);
+    TEST_ASSERT_NULL(region);
+}
