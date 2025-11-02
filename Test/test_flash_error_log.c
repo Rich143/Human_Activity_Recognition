@@ -7,6 +7,7 @@
 #include "flash_error_log_internal.h"
 #include "mock_flash_manager.h"
 #include "mock_stm32u5xx_hal.h"
+#include "mock_uart.h"
 #include "log_utils.h"
 
 #include "unity.h"
@@ -341,6 +342,41 @@ void test_recover_log_pointer_full_log() {
     uint32_t numLoggedRows = error_log_get_num_log_entries();
 
     TEST_ASSERT_EQUAL_UINT32(num_rows, numLoggedRows);
+}
+
+void get_error_code_and_data(error_code_values_t *error_code, error_code_data_t
+                             *error_data)
+{
+    int min = 0, max = 5;
+    int random_code = min + random() % (max - min + 1);
+    int random_data = min + random() % (max - min + 1);
+
+    *error_code = random_code;
+    *error_data = random_data;
+}
+
+void test_send_logs_over_uart() {
+    int num_logs = 16;
+
+    initTestFlash(num_logs + 1);
+
+    for (int i = 0; i < num_logs; i++) {
+        error_code_values_t error_code;
+        error_code_data_t error_data;
+        get_error_code_and_data(&error_code, &error_data);
+
+        fill_error_log_buffer(&gTestExpectedRows[i], i,
+                              error_code,
+                              error_data);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_recover_log_pointer());
+
+    for (int i = 0; i < num_logs; i++) {
+        uart_cli_send_data_ExpectAndReturn((uint8_t *)&gTestExpectedRows[i], sizeof(error_log_row_t), true);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_send_over_uart());
 }
 
 // Recover logs, print logs

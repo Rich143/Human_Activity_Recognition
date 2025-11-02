@@ -4,6 +4,7 @@
 #include "flash_error_log_internal.h"
 #include "stm32u5xx_hal.h"
 #include "log_utils.h"
+#include "High_Level/uart.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -103,22 +104,8 @@ error_log_status_t error_log_clear_logs(void)
     return ERROR_LOG_OK;
 }
 
-error_log_status_t error_log_recover_log_pointer()
+error_log_status_t log_utils_status_to_error_log_status(log_utils_status_t status)
 {
-    flash_region_t *region;
-
-    region = flash_manager_get_region(FLASH_REGION_ERROR_LOGS);
-    if (region == NULL) {
-        return ERROR_LOG_CONFIG_ERROR;
-    }
-
-    log_utils_status_t status =
-        log_utils_recover_log_pointer(region,
-                                  ERROR_LOG_ROW_SIZE_BYTES,
-                                  &num_entries,
-                                  (uint8_t *)error_log_buffer,
-                                  ERROR_LOG_BUFFER_SIZE_ROWS);
-
     switch (status) {
         case LOG_UTILS_OK:
             return ERROR_LOG_OK;
@@ -137,7 +124,72 @@ error_log_status_t error_log_recover_log_pointer()
     }
 }
 
+error_log_status_t error_log_recover_log_pointer()
+{
+    flash_region_t *region;
+
+    region = flash_manager_get_region(FLASH_REGION_ERROR_LOGS);
+    if (region == NULL) {
+        return ERROR_LOG_CONFIG_ERROR;
+    }
+
+    log_utils_status_t status =
+        log_utils_recover_log_pointer(region,
+                                  ERROR_LOG_ROW_SIZE_BYTES,
+                                  &num_entries,
+                                  (uint8_t *)error_log_buffer,
+                                  ERROR_LOG_BUFFER_SIZE_ROWS);
+
+    return log_utils_status_to_error_log_status(status);
+}
+
 error_log_status_t error_log_get_num_log_entries()
 {
     return num_entries;
+}
+
+error_log_status_t send_row_over_uart(error_log_row_t *row) {
+    bool success = uart_cli_send_data((uint8_t *)row,
+                                      sizeof(error_log_row_t));
+
+    if (success) {
+        return ERROR_LOG_OK;
+    } else {
+        return ERROR_LOG_UART_SEND_ERROR;
+    }
+}
+
+handle_row_return_t error_log_handle_row(uint8_t *row_data, uint32_t
+                                            row_size_bytes, void *user_data)
+{
+    error_log_status_t status
+        = send_row_over_uart((error_log_row_t *)row_data);
+
+    if (status != ERROR_LOG_OK) {
+        *((error_log_status_t *)user_data) = status;
+
+        return HANDLE_ROW_STOP;
+    }
+
+    return HANDLE_ROW_CONTINUE;
+}
+
+error_log_status_t error_log_send_over_uart() {
+    error_log_status_t send_status = ERROR_LOG_OK;
+
+    log_utils_status_t status = log_utils_iterate_logs(
+        flash_manager_get_region(FLASH_REGION_ERROR_LOGS),
+        ERROR_LOG_ROW_SIZE_BYTES,
+        (uint8_t *)error_log_buffer,
+        ERROR_LOG_BUFFER_SIZE_ROWS,
+        num_entries,
+        error_log_handle_row,
+        &send_status
+    );
+
+    if (status != LOG_UTILS_OK) {
+        return log_utils_status_to_error_log_status(status);
+    }
+
+    return send_status;
 }
