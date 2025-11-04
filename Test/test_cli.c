@@ -7,6 +7,7 @@
 #include "mock_cmsis_gcc.h"
 #include "mock_stm32u5xx_hal.h"
 #include "mock_config.h"
+#include "mock_flash_error_log.h"
 
 #include "cli.h"
 #include "uart.h"
