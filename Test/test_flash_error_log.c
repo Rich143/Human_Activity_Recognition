@@ -168,7 +168,7 @@ void test_log_multiple_errors(void) {
                                 error_data_1));
 
     TEST_ERROR_LOG_OK(error_log(error_code_2,
-                                ERROR_DATA_BSP_ERROR_CODE,
+                                ERROR_DATA_PREPROCESS_STATUS,
                                 error_data_2));
 }
 

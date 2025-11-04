@@ -42,7 +42,6 @@ uint32_t *get_row_start_marker(uint32_t row_idx, uint8_t *buf,
 bool row_contains_row_start_marker(uint32_t row_idx, uint8_t *buf,
                                    uint32_t row_size_bytes)
 {
-    // TODO: check if flash is cleared if not row start marker
     uint32_t *row_start_ptr = get_row_start_marker(row_idx, buf,
                                                    row_size_bytes);
 

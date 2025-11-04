@@ -13,6 +13,7 @@
 #include "wb-at-client/stm32wb_at_ble.h"
 #include "wb-at-client/stm32wb_at_client.h"
 #include "High_Level/uart.h"
+#include "flash_error_log.h"
 #include <stdint.h>
 
 /* Private typedef -----------------------------------------------------------*/
@@ -188,7 +189,7 @@ int ble_at_client_setup_and_run() {
   status = stm32wb_at_client_Query(BLE_TEST);
   if (status != 0) {
     printf("Failed to test the UART communication link with BLE module\n");
-    return -1;
+    return -2;
   }
 
   HAL_Delay(100);
@@ -198,7 +199,7 @@ int ble_at_client_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to reset BLE module\n");
-    return -1;
+    return -3;
   }
 
   HAL_Delay(100);
@@ -212,7 +213,7 @@ int ble_at_client_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to start the BLE P2P server application\n");
-    return -1;
+    return -4;
   }
 
   HAL_Delay(100);
@@ -222,7 +223,7 @@ int ble_at_client_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to query BLE service\n");
-    return -1;
+    return -5;
   }
 
   HAL_Delay(100);
@@ -238,7 +239,7 @@ int ble_at_client_setup_and_run() {
     printf("BLE P2P server application is running\n");
   } else {
     printf("Failed to start the BLE P2P server application\n");
-    return -1;
+    return -6;
   }
 
   return 0;

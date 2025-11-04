@@ -155,30 +155,37 @@ int main(void)
 
   config_init();
 
-  // TODO: Init flash error log first
+  error_log_status_t error_log_status = error_log_init();
+  if (error_log_status != ERROR_LOG_OK) {
+    printf("Failed to init error log\n");
+    while(1);
+  }
 
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
     printf("Failed to init IMU\n");
-    error_log(ERROR_IMU_INIT_ERROR,
-              ERROR_DATA_BSP_ERROR_CODE, status);
+    LOG_ERROR(ERROR_IMU_INIT_ERROR,
+              ERROR_DATA_BSP_ERROR_CODE, status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
   flash_log_status_t flash_status =
-    flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
+    flash_log_init();
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
-    error_log(ERROR_FLASH_LOG_INIT_ERROR,
-              ERROR_DATA_FLASH_LOG_STATUS, flash_status);
+    LOG_ERROR(ERROR_FLASH_LOG_INIT_ERROR,
+              ERROR_DATA_FLASH_LOG_STATUS, flash_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
   cli_status_t cli_status = cli_init();
   if (cli_status != CLI_STATUS_OK) {
     printf("Failed to init CLI\n");
-    error_log(ERROR_CLI_INIT_ERROR,
-              ERROR_DATA_CLI_STATUS, cli_status);
+    LOG_ERROR(ERROR_CLI_INIT_ERROR,
+              ERROR_DATA_CLI_STATUS, cli_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
@@ -188,7 +195,14 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  ble_at_client_setup_and_run();
+  int ble_status = ble_at_client_setup_and_run();
+  if (ble_status != 0) {
+    printf("Failed to init BLE\n");
+    LOG_ERROR(ERROR_BLE_INIT_ERROR,
+              ERROR_DATA_BLE_STATUS, ble_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
+    while(1);
+  }
 
   uint32_t last_notify = 0;
 
@@ -202,10 +216,9 @@ int main(void)
       int8_t status = ble_at_client_notify();
       if (status != 0) {
         printf("Failed to notify ble\n");
-        error_log(ERROR_BLE_NOTIFY_ERROR,
-                  ERROR_DATA_BLE_STATUS, status);
-        // TODO: don't need to hang?
-        while (1);
+        LOG_ERROR(ERROR_BLE_NOTIFY_ERROR,
+                  ERROR_DATA_BLE_STATUS, status,
+                  ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
       }
 
       last_notify = HAL_GetTick();
@@ -219,7 +232,11 @@ int main(void)
         cli_status = cli_start();
         if (cli_status != CLI_STATUS_OK) {
           printf("Failed to start CLI\n");
-          while(1);
+          LOG_ERROR(ERROR_CLI_START_ERROR,
+                    ERROR_DATA_CLI_STATUS, cli_status,
+                    ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+
+          continue;
         }
 
         config_set_cli_enabled(true);
@@ -228,7 +245,9 @@ int main(void)
       cli_status = cli_run();
       if (cli_status != CLI_STATUS_OK) {
         printf("Failed to run CLI\n");
-        while(1);
+        LOG_ERROR(ERROR_CLI_RUN_ERROR,
+                  ERROR_DATA_CLI_STATUS, cli_status,
+                  ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
       }
     }
 

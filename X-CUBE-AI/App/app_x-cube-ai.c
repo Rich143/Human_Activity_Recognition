@@ -34,6 +34,7 @@
   *   typical : C:\Users\<user_name>\STM32Cube\Repository\STMicroelectronics\X-CUBE-AI\7.1.0
   */
 
+#include "flash_error_log.h"
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -117,7 +118,7 @@ static void ai_log_err(const ai_error err, const char *fct)
   else
     printf("TEMPLATE - Error - type=0x%02x code=0x%02x\r\n", err.type, err.code);
 
-  do {} while (1);
+  /*do {} while (1);*/
   /* USER CODE END log */
 }
 
@@ -395,7 +396,9 @@ void handle_log_and_print(log_data_t *log_data, bool model_enabled) {
 
         if (status != FLASH_LOG_OK) {
             printf("Failed to write window to flash: %d\n", status);
-            while(1);
+            LOG_ERROR(ERROR_FLASH_LOG_WRITE_ERROR,
+                      ERROR_DATA_FLASH_LOG_STATUS, status,
+                      ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
         }
     }
 
@@ -442,33 +445,44 @@ void MX_X_CUBE_AI_Process(void)
         preprocess_status_t status
             = acquire_and_process_data(data_ins, &log_data);
 
-        /* 2 - process the data - call inference engine */
-        if (status == PREPROCESS_STATUS_OK) {
-            if (model_enabled) {
-                res = ai_run();
+        if (status != PREPROCESS_STATUS_OK) {
+            if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
+                // buffering, continue
+                return;
             } else {
-                res = 0;
+                LOG_ERROR(ERROR_PREPROCESS_ERROR,
+                          ERROR_DATA_PREPROCESS_STATUS, status,
+                          ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+                return;
             }
-            /* 3- post-process the predictions */
-            if (res == 0) {
-                res = post_process(data_outs, &log_data, model_enabled);
-
-                if (res == 0) {
-                    handle_log_and_print(&log_data, model_enabled);
-                }
-            }
-        } else if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
-            // buffering, continue
-            res = 0;
-        } else {
-            res = status;
         }
-    }
 
-    if (res) {
-        ai_error err = {AI_ERROR_INVALID_STATE, AI_ERROR_CODE_NETWORK};
-        ai_log_err(err, "Process has FAILED");
-    }
+        int res;
+
+        if (model_enabled) {
+            res = ai_run();
+        } else {
+            res = 0;
+        }
+
+        if (res != 0) {
+            LOG_ERROR(ERROR_AI_RUN_ERROR,
+                      ERROR_DATA_NONE, 0,
+                      ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+            return;
+        }
+
+
+        res = post_process(data_outs, &log_data, model_enabled);
+        if (res != 0) {
+            LOG_ERROR(ERROR_POSTPROCESS_ERROR,
+                      ERROR_DATA_NONE, 0,
+                      ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+            return;
+        }
+
+        handle_log_and_print(&log_data, model_enabled);
+
     /* USER CODE END 6 */
 }
 #ifdef __cplusplus

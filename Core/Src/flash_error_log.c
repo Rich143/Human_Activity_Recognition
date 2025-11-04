@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define ERROR_LOG_BUFFER_SIZE_ROWS  (NOR_FLASH_PAGE_SIZE / sizeof(error_log_row_t))
 
@@ -38,7 +39,14 @@ uint32_t get_error_log_write_address() {
 
 error_log_status_t check_data_type(error_code_t error_code,
                                    error_data_types_t data_type) {
-    // TODO: implement
+    for (uint32_t i = 0; i < ERROR_CODE_VALUES_COUNT; i++) {
+        if (error_registry[i].code == error_code) {
+            if (error_registry[i].data != data_type) {
+                return ERROR_LOG_PARAM_ERROR;
+            }
+        }
+    }
+
     return ERROR_LOG_OK;
 }
 
@@ -78,6 +86,18 @@ error_log_status_t error_log(error_code_t error_code,
 
 uint32_t ceil_div(uint32_t a, uint32_t b) {
     return (a + b - 1) / b;
+}
+
+void LOG_ERROR(error_code_t error_code, error_data_types_t data_type,
+               error_code_data_t data, error_log_hang_on_error_t hang_on_error)
+{
+    error_log_status_t status = error_log(error_code, data_type, data);
+    if (status != ERROR_LOG_OK) {
+        printf("Error logging error: %d\n", status);
+        if (hang_on_error == ERROR_LOG_HANG_ON_LOG_FAILURE) {
+            while (1);
+        }
+    }
 }
 
 
