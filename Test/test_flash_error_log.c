@@ -9,6 +9,7 @@
 #include "mock_stm32u5xx_hal.h"
 #include "mock_uart.h"
 #include "log_utils.h"
+#include "config.h"
 
 #include "unity.h"
 
@@ -36,8 +37,8 @@
 
 flash_region_t error_log_region = {
     .region_idx = FLASH_REGION_ERROR_LOGS,
-    .start_sector = FLASH_MANAGER_ERROR_LOG_SECTOR_START,
-    .num_sectors = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS
+    .start_sector = CONFIG_FLASH_ERROR_LOG_SECTOR_START,
+    .num_sectors = CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS
 };
 
 error_log_row_t *gTestExpectedRows;
@@ -171,8 +172,6 @@ void test_log_multiple_errors(void) {
                                 error_data_2));
 }
 
-// TODO: Test log full
-
 void test_clear_error_log() {
     flash_manager_write_IgnoreAndReturn(FLASH_MANAGER_OK);
     HAL_GetTick_IgnoreAndReturn(0);
@@ -240,7 +239,7 @@ flash_manager_status_t flash_manager_write_stub(uint32_t region,
         TEST_FAIL_MESSAGE("flash_manager_write called with wrong region");
     }
 
-    uint32_t max_address = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE - 1;
+    uint32_t max_address = CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE - 1;
 
     if (address > max_address) {
         return FLASH_MANAGER_ERROR_OUT_OF_BOUNDS;
@@ -255,7 +254,7 @@ void test_log_full() {
     HAL_GetTick_IgnoreAndReturn(0);
 
     // fill error logs
-    int num_logs = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE / sizeof(error_log_row_t);
+    int num_logs = CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE / sizeof(error_log_row_t);
 
     for (int i = 0; i < num_logs; i++) {
         TEST_ERROR_LOG_OK(error_log(ERROR_IMU_READ_ERROR,
@@ -327,7 +326,7 @@ void test_recover_log_pointer_page_boundary()
 
 void test_recover_log_pointer_full_log() {
     const int num_rows_per_sector = NOR_FLASH_SECTOR_SIZE / sizeof(error_log_row_t);
-    const int num_rows = num_rows_per_sector * FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS;
+    const int num_rows = num_rows_per_sector * CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS;
 
     initTestFlash(num_rows);
 

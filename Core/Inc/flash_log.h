@@ -18,12 +18,15 @@
 typedef enum {
     FLASH_LOG_OK = 0,
     FLASH_LOG_FULL,
-    FLASH_LOG_CONFIG_ERROR,
     FLASH_LOG_PARAM_ERROR,
+    FLASH_LOG_FLASH_WRITE_ERROR,
+    FLASH_LOG_FLASH_READ_ERROR,
+    FLASH_LOG_FLASH_ERASE_ERROR,
+    FLASH_LOG_CORRUPT_LOG,
     FLASH_LOG_ERROR,
 } flash_log_status_t;
 
-flash_log_status_t flash_log_init(uint32_t max_num_saved_samples);
+flash_log_status_t flash_log_init();
 
 flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
                                           const accel_data_t *lowpass_filtered,

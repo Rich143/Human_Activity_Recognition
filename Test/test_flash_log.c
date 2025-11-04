@@ -1,7 +1,6 @@
-#include "High_Level/nor_flash.h"
+#include "High_Level/flash_manager.h"
 #include "accel_data_type.h"
 #include "ai_input_data_type.h"
-#include "build/test/mocks/test_flash_log/mock_nor_flash.h"
 #include "support/imu_test_data.h"
 #include "unity.h"
 
@@ -15,8 +14,10 @@
 #include "flash_log.h"
 #include "flash_log_internal.h"
 
+#include "config.h"
+#include "log_utils.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
-#include "mock_nor_flash.h"
+#include "mock_flash_manager.h"
 #include "mock_uart.h"
 
 // Helper macros for test status checking
@@ -42,21 +43,39 @@ typedef struct {
     uint32_t output_class;
 } test_log_input_data_t;
 
-const uint32_t test_flash_log_max_num_saved_rows = 10000;
-
 test_log_input_data_t testLogInputData;
 flash_log_row_t *gTestExpectedRows;
 
-void setUp(void) { }
+flash_region_t data_log_region = {
+    .region_idx = FLASH_REGION_DATA_LOGS,
+    .start_sector = CONFIG_FLASH_DATA_LOG_SECTOR_START,
+    .num_sectors = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS
+};
+
+flash_region_t *flash_manager_get_region_cb(flash_region_idxs_t region_idx, int numCalls) {
+    if (region_idx != FLASH_REGION_DATA_LOGS) {
+        TEST_FAIL_MESSAGE("flash_manager_get_region called with wrong region");
+    }
+
+    return &data_log_region;
+}
+
+void setUp(void) {
+    flash_manager_get_region_Stub(flash_manager_get_region_cb);
+}
 
 void init_flash_log(void)
 {
-    nor_flash_init_ExpectAndReturn(BSP_ERROR_NONE);
+    flash_manager_init_ExpectAndReturn(FLASH_MANAGER_OK);
 
-    TEST_FLASH_LOG_OK(flash_log_init(test_flash_log_max_num_saved_rows));
+    TEST_FLASH_LOG_OK(flash_log_init());
 }
 
-int nor_flash_read_cb(uint32_t readAddress, uint8_t* pBuffer, uint32_t size, int cmock_num_calls) {
+flash_manager_status_t flash_manager_read_cb(flash_region_idxs_t region_idx,
+                                             uint32_t readAddress,
+                                             uint8_t* pBuffer, uint32_t size,
+                                             int cmock_num_calls)
+{
     uint8_t *flash = (uint8_t *)gTestExpectedRows;
     memcpy(pBuffer, &flash[readAddress], size);
 
@@ -67,7 +86,7 @@ void initTestFlash(uint32_t numRows) {
     gTestExpectedRows = malloc(numRows * sizeof(flash_log_row_t));
     memset(gTestExpectedRows, 0xFF, numRows * sizeof(flash_log_row_t));
 
-    nor_flash_read_Stub(nor_flash_read_cb);
+    flash_manager_read_Stub(flash_manager_read_cb);
 
     init_flash_log();
 }
@@ -168,7 +187,7 @@ void test_single_write() {
         .contains_output = 1,
     };
 
-    nor_flash_write_ExpectWithArrayAndReturn(0, (uint8_t *)&expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
+    flash_manager_write_ExpectWithArrayAndReturn(FLASH_REGION_DATA_LOGS, 0, (uint8_t *)&expected_row, sizeof(flash_log_row_t), sizeof(flash_log_row_t), BSP_ERROR_NONE);
 
     TEST_FLASH_LOG_OK(flash_log_write_window(&unproc, &filtered, &proc, model_output, output_class, true, 1));
 }
@@ -294,11 +313,11 @@ void test_double_write() {
 
     flash_log_row_t *expectedRows = get_expected_rows_double_write(testLogInputData, gTestExpectedRows);
 
-    nor_flash_write_ExpectWithArrayAndReturn(0,
-                                             (uint8_t *)expectedRows,
-                                             2 * sizeof(flash_log_row_t),
-                                             2 * sizeof(flash_log_row_t),
-                                             BSP_ERROR_NONE);
+    flash_manager_write_ExpectWithArrayAndReturn(FLASH_REGION_DATA_LOGS, 0,
+                                                 (uint8_t *)expectedRows,
+                                                 2 * sizeof(flash_log_row_t),
+                                                 2 * sizeof(flash_log_row_t),
+                                                 BSP_ERROR_NONE);
 
     TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
                            &testLogInputData->filtered,
@@ -318,11 +337,12 @@ void test_multiple_double_writes() {
     for (int i = 0; i < 8; i += 2) {
         uint32_t expectedAddress = i * sizeof(flash_log_row_t);
 
-        nor_flash_write_ExpectWithArrayAndReturn(expectedAddress,
-                                                 (uint8_t *)expectedRows,
-                                                 2 * sizeof(flash_log_row_t),
-                                                 2 * sizeof(flash_log_row_t),
-                                                 BSP_ERROR_NONE);
+        flash_manager_write_ExpectWithArrayAndReturn(FLASH_REGION_DATA_LOGS,
+                                                     expectedAddress,
+                                                     (uint8_t *)expectedRows,
+                                                     2 * sizeof(flash_log_row_t),
+                                                     2 * sizeof(flash_log_row_t),
+                                                     BSP_ERROR_NONE);
 
         TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
                                                  &testLogInputData->filtered,
@@ -336,14 +356,36 @@ void test_multiple_double_writes() {
 
 }
 
+flash_manager_status_t flash_manager_write_stub(uint32_t region,
+                                                uint32_t address,
+                                                uint8_t *data,
+                                                uint32_t size,
+                                                int numCalls)
+{
+    if (region != FLASH_REGION_DATA_LOGS) {
+        TEST_FAIL_MESSAGE("flash_manager_write called with wrong region");
+    }
+
+    uint32_t max_address = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE - 1;
+
+    if (address > max_address) {
+        return FLASH_MANAGER_ERROR_OUT_OF_BOUNDS;
+    }
+
+    return FLASH_MANAGER_OK;
+}
+
 void test_fill_log() {
-    initTestFlash(test_flash_log_max_num_saved_rows);
+    int num_logs = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE /
+        sizeof(flash_log_row_t);
+
+    initTestFlash(num_logs);
 
     test_log_input_data_t *testLogInputData = get_log_input_data_double_write();
 
-    nor_flash_write_IgnoreAndReturn(BSP_ERROR_NONE);
+    flash_manager_write_Stub(flash_manager_write_stub);
 
-    for (int i = 0; i < test_flash_log_max_num_saved_rows; i += 2) {
+    for (int i = 0; i < num_logs; i += 2) {
         TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
                                                  &testLogInputData->filtered,
                                                  &testLogInputData->ai_input,
@@ -420,7 +462,7 @@ void test_clear_logs_single_sector() {
 
     TEST_ASSERT_EQUAL_UINT32(testFlashRowsFilled, numLoggedRows);
 
-    nor_flash_erase_sector_ExpectAndReturn(0, BSP_ERROR_NONE);
+    flash_manager_erase_sector_ExpectAndReturn(FLASH_REGION_DATA_LOGS, 0, BSP_ERROR_NONE);
 
     // Clear the logs
     TEST_FLASH_LOG_OK(flash_log_clear_logs());
@@ -456,7 +498,7 @@ void test_clear_logs_multiple_sectors() {
     TEST_ASSERT_EQUAL_UINT32(testFlashRowsFilled, numLoggedRows);
 
     for (uint32_t i = 0; i < testFlashNumSectorsFilled; i++) {
-        nor_flash_erase_sector_ExpectAndReturn(i*NOR_FLASH_SECTOR_SIZE, BSP_ERROR_NONE);
+        flash_manager_erase_sector_ExpectAndReturn(FLASH_REGION_DATA_LOGS, i, BSP_ERROR_NONE);
     }
 
     // Clear the logs
@@ -545,11 +587,11 @@ void test_double_write_model_disabled() {
 
     flash_log_row_t *expectedRows = get_expected_rows_double_write_model_disabled(testLogInputData, gTestExpectedRows);
 
-    nor_flash_write_ExpectWithArrayAndReturn(0,
-                                             (uint8_t *)expectedRows,
-                                             2 * sizeof(flash_log_row_t),
-                                             2 * sizeof(flash_log_row_t),
-                                             BSP_ERROR_NONE);
+    flash_manager_write_ExpectWithArrayAndReturn(FLASH_REGION_DATA_LOGS, 0,
+                                                 (uint8_t *)expectedRows,
+                                                 2 * sizeof(flash_log_row_t),
+                                                 2 * sizeof(flash_log_row_t),
+                                                 BSP_ERROR_NONE);
 
     TEST_FLASH_LOG_OK(flash_log_write_window(&testLogInputData->unproc,
                            &testLogInputData->filtered,
@@ -559,6 +601,3 @@ void test_double_write_model_disabled() {
                            false,
                            2));
 }
-
-
-// TODO: make test flash 1 row greater than num written rows

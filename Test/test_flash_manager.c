@@ -2,7 +2,7 @@
 #include "High_Level/nor_flash.h"
 #include "unity.h"
 #include "mock_nor_flash.h"
-
+#include "config.h"
 #include "flash_manager.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 
@@ -57,7 +57,7 @@ void test_write_data_logs_another_sector() {
 void test_write_data_logs_out_of_bounds() {
     uint8_t buffer[32];
 
-    uint32_t write_address = FLASH_MANAGER_DATA_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE;
+    uint32_t write_address = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE;
 
     TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_OUT_OF_BOUNDS,
                               flash_manager_write(FLASH_REGION_DATA_LOGS,
@@ -76,7 +76,7 @@ void test_read_data_logs() {
 
 void test_write_error_logs() {
     uint32_t write_address =
-        FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+        CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
 
     uint8_t buffer[32];
 
@@ -89,7 +89,7 @@ void test_write_error_logs() {
 
 void test_write_error_logs_another_sector() {
     uint32_t write_address_base =
-        FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+        CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
 
     uint32_t write_address_region = NOR_FLASH_SECTOR_SIZE + 13;
 
@@ -106,7 +106,7 @@ void test_write_error_logs_another_sector() {
 
 void test_write_error_logs_out_of_bounds() {
     uint32_t write_address_region =
-        FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE + 5;
+        CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS * NOR_FLASH_SECTOR_SIZE + 5;
 
     uint8_t buffer[32];
 
@@ -119,7 +119,7 @@ void test_write_error_logs_out_of_bounds() {
 
 void test_read_error_logs() {
     uint32_t read_address =
-        FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+        CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
 
     uint8_t buffer[32];
 
@@ -139,7 +139,7 @@ void test_data_logs_erase() {
 }
 
 void test_error_logs_erase() {
-    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+    uint32_t erase_address = CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
 
     nor_flash_erase_sector_ExpectAndReturn(erase_address, BSP_ERROR_NONE);
 
@@ -157,7 +157,7 @@ void test_data_logs_erase_another_sector() {
 
 void test_error_logs_erase_another_sector() {
     uint32_t sector = 1;
-    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+    uint32_t erase_address = CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
     erase_address += sector * NOR_FLASH_SECTOR_SIZE;
 
     nor_flash_erase_sector_ExpectAndReturn(erase_address, BSP_ERROR_NONE);
@@ -166,7 +166,7 @@ void test_error_logs_erase_another_sector() {
 }
 
 void test_data_logs_erase_out_of_bounds() {
-    uint32_t sector = FLASH_MANAGER_DATA_LOG_SIZE_SECTORS;
+    uint32_t sector = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS;
     uint32_t erase_address = sector * NOR_FLASH_SECTOR_SIZE;
 
     TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_OUT_OF_BOUNDS,
@@ -174,8 +174,8 @@ void test_data_logs_erase_out_of_bounds() {
 }
 
 void test_error_logs_erase_out_of_bounds() {
-    uint32_t sector = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS;
-    uint32_t erase_address = FLASH_MANAGER_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
+    uint32_t sector = CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS;
+    uint32_t erase_address = CONFIG_FLASH_ERROR_LOG_SECTOR_START * NOR_FLASH_SECTOR_SIZE;
     erase_address += sector * NOR_FLASH_SECTOR_SIZE;
 
     TEST_FLASH_MANAGER_STATUS(FLASH_MANAGER_ERROR_OUT_OF_BOUNDS,
@@ -220,14 +220,14 @@ void test_get_region() {
     region = flash_manager_get_region(FLASH_REGION_DATA_LOGS);
 
     TEST_ASSERT_NOT_NULL(region);
-    TEST_ASSERT_EQUAL_UINT32(region->start_sector, FLASH_MANAGER_DATA_LOG_SECTOR_START);
-    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, FLASH_MANAGER_DATA_LOG_SIZE_SECTORS);
+    TEST_ASSERT_EQUAL_UINT32(region->start_sector, CONFIG_FLASH_DATA_LOG_SECTOR_START);
+    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, CONFIG_FLASH_DATA_LOG_SIZE_SECTORS);
 
     region = flash_manager_get_region(FLASH_REGION_ERROR_LOGS);
 
     TEST_ASSERT_NOT_NULL(region);
-    TEST_ASSERT_EQUAL_UINT32(region->start_sector, FLASH_MANAGER_ERROR_LOG_SECTOR_START);
-    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS);
+    TEST_ASSERT_EQUAL_UINT32(region->start_sector, CONFIG_FLASH_ERROR_LOG_SECTOR_START);
+    TEST_ASSERT_EQUAL_UINT32(region->num_sectors, CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS);
 
     region = flash_manager_get_region(FLASH_REGION_COUNT);
     TEST_ASSERT_NULL(region);

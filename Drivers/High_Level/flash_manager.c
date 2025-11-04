@@ -4,17 +4,18 @@
 #include <stdio.h>
 
 #include "nor_flash.h"
+#include "config.h"
 
 static bool nor_flash_initialised = false;
 
 // Note: The order of these regions needs to match the order of the region indexes
 flash_region_t flash_regions[FLASH_REGION_COUNT] = {
-    { .start_sector = FLASH_MANAGER_DATA_LOG_SECTOR_START,
-          .num_sectors = FLASH_MANAGER_DATA_LOG_SIZE_SECTORS,
+    { .start_sector = CONFIG_FLASH_DATA_LOG_SECTOR_START,
+          .num_sectors = CONFIG_FLASH_DATA_LOG_SIZE_SECTORS,
           .region_idx = FLASH_REGION_DATA_LOGS},
 
-    { .start_sector = FLASH_MANAGER_ERROR_LOG_SECTOR_START,
-          .num_sectors = FLASH_MANAGER_ERROR_LOG_SIZE_SECTORS,
+    { .start_sector = CONFIG_FLASH_ERROR_LOG_SECTOR_START,
+          .num_sectors = CONFIG_FLASH_ERROR_LOG_SIZE_SECTORS,
           .region_idx = FLASH_REGION_ERROR_LOGS},
 };
 
