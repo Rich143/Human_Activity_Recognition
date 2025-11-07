@@ -16,6 +16,7 @@
 
 #include "config.h"
 #include "log_utils.h"
+#include "utils.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "mock_flash_manager.h"
 #include "mock_uart.h"
@@ -600,4 +601,25 @@ void test_double_write_model_disabled() {
                            testLogInputData->output_class,
                            false,
                            2));
+}
+
+void test_send_logs_over_uart() {
+    int num_logs = 16;
+
+    initTestFlash(num_logs + 1);
+
+    test_log_input_data_t * testLogInputData = get_log_input_data_double_write();
+
+    for (int i = 0; i < num_logs; i += 2) {
+        get_expected_rows_double_write(testLogInputData,
+                                       &gTestExpectedRows[i]);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_recover_log_pointer());
+
+    for (int i = 0; i < num_logs; i++) {
+        uart_cli_send_data_ExpectAndReturn((uint8_t *)&gTestExpectedRows[i], sizeof(flash_log_row_t), true);
+    }
+
+    TEST_FLASH_LOG_OK(flash_log_send_over_uart());
 }

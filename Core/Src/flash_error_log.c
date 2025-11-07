@@ -1,9 +1,9 @@
 #include "flash_error_log.h"
 #include "High_Level/flash_manager.h"
-#include "flash_manager.h"
 #include "flash_error_log_internal.h"
 #include "stm32u5xx_hal.h"
 #include "log_utils.h"
+#include "utils.h"
 #include "High_Level/uart.h"
 
 #include <assert.h>
@@ -84,10 +84,6 @@ error_log_status_t error_log(error_code_t error_code,
     return ERROR_LOG_OK;
 }
 
-uint32_t ceil_div(uint32_t a, uint32_t b) {
-    return (a + b - 1) / b;
-}
-
 void LOG_ERROR(error_code_t error_code, error_data_types_t data_type,
                error_code_data_t data, error_log_hang_on_error_t hang_on_error)
 {
@@ -99,7 +95,6 @@ void LOG_ERROR(error_code_t error_code, error_data_types_t data_type,
         }
     }
 }
-
 
 error_log_status_t error_log_clear_logs(void)
 {
@@ -163,12 +158,12 @@ error_log_status_t error_log_recover_log_pointer()
     return log_utils_status_to_error_log_status(status);
 }
 
-error_log_status_t error_log_get_num_log_entries()
+uint32_t error_log_get_num_log_entries()
 {
     return num_entries;
 }
 
-error_log_status_t send_row_over_uart(error_log_row_t *row) {
+error_log_status_t error_log_send_row_over_uart(error_log_row_t *row) {
     bool success = uart_cli_send_data((uint8_t *)row,
                                       sizeof(error_log_row_t));
 
@@ -183,7 +178,7 @@ handle_row_return_t error_log_handle_row(uint8_t *row_data, uint32_t
                                             row_size_bytes, void *user_data)
 {
     error_log_status_t status
-        = send_row_over_uart((error_log_row_t *)row_data);
+        = error_log_send_row_over_uart((error_log_row_t *)row_data);
 
     if (status != ERROR_LOG_OK) {
         *((error_log_status_t *)user_data) = status;

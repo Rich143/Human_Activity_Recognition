@@ -69,14 +69,24 @@ log_utils_status_t log_utils_iterate_logs(flash_region_t *region,
     uint32_t read_buffer_size_bytes = row_size_bytes * read_buffer_size_rows;
 
     for (uint32_t i = 0; i < num_rows; i += read_buffer_size_rows) {
+        uint32_t num_rows_to_read;
+        uint32_t rows_read = i;
+        uint32_t rows_left = num_rows - rows_read;
+
+        if (read_buffer_size_rows > rows_left) {
+            num_rows_to_read = rows_left;
+        } else {
+            num_rows_to_read = read_buffer_size_rows;
+        }
+
         int32_t status = read_in_flash(region, read_address,
                                        read_buffer,
-                                       read_buffer_size_rows, row_size_bytes);
+                                       num_rows_to_read, row_size_bytes);
         if (status != 0) {
             return LOG_UTILS_FLASH_READ_ERROR;
         }
 
-        for (uint32_t j = 0; j < read_buffer_size_rows; ++j) {
+        for (uint32_t j = 0; j < num_rows_to_read; ++j) {
             uint32_t *row_start_marker = get_row_start_marker(j, read_buffer,
                                                               row_size_bytes);
 

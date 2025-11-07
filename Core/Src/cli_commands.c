@@ -11,6 +11,7 @@
 #include "High_Level/motion_sensor_interface.h"
 #include "b-u585i-iot02a-bsp/b_u585i_iot02a_errno.h"
 #include "ble_at_client.h"
+#include "flash_error_log.h"
 #include "flash_log.h"
 #include "config.h"
 #include "cli.h"
@@ -267,6 +268,47 @@ BaseType_t enablePredictionsCommand(char *pcWriteBuffer, size_t xWriteBufferLen,
 
     snprintf(pcWriteBuffer, xWriteBufferLen, "Predictions Enabled %u\n", enabled);
     config_set_predictions_enabled(enabled);
+
+    return pdFALSE;
+}
+
+BaseType_t dumpErrorLogsCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString )
+{
+    error_log_status_t status = error_log_send_over_uart();
+    if (status == ERROR_LOG_OK) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Done\n");
+        return pdFALSE;
+    } else {
+        snprintf(pcWriteBuffer, xWriteBufferLen,
+                 "Error printing error logs: %d\n", status);
+        return pdFALSE;
+    }
+
+    return pdFALSE;
+}
+
+BaseType_t writeErrorLogCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const
+                             char *pcCommandString)
+{
+    uint32_t paramterStringLength;
+    const char * param = FreeRTOS_CLIGetParameter(pcCommandString,
+                                                    1,
+                                                    &paramterStringLength);
+
+    uint8_t type = (uint8_t)atoi(param);
+
+    switch (type) {
+        case 0:
+            LOG_ERROR(ERROR_IMU_READ_ERROR, ERROR_DATA_BSP_ERROR_CODE, 2, ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+            break;
+        case 1:
+            LOG_ERROR(ERROR_PREPROCESS_ERROR, ERROR_DATA_PREPROCESS_STATUS, 3, ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+            break;
+        default:
+            snprintf(pcWriteBuffer, xWriteBufferLen, "Invalid value for type param\n");
+    }
 
     return pdFALSE;
 }

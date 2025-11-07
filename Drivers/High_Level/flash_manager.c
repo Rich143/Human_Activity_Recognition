@@ -137,6 +137,8 @@ flash_manager_status_t flash_manager_write(flash_region_idxs_t region_idx,
     if (nor_flash_write(write_address, data, size) != 0) {
         return FLASH_MANAGER_ERROR_FLASH_WRITE;
     }
+
+    return FLASH_MANAGER_OK;
 }
 
 flash_manager_status_t flash_manager_read(flash_region_idxs_t region_idx,
@@ -163,6 +165,8 @@ flash_manager_status_t flash_manager_read(flash_region_idxs_t region_idx,
     if (nor_flash_read(read_address, data, size) != 0) {
         return FLASH_MANAGER_ERROR_FLASH_READ;
     }
+
+    return FLASH_MANAGER_OK;
 }
 
 flash_manager_status_t flash_manager_erase_sector(flash_region_idxs_t region_idx,
@@ -187,4 +191,6 @@ flash_manager_status_t flash_manager_erase_sector(flash_region_idxs_t region_idx
     if (nor_flash_erase_sector(erase_address) != 0) {
         return FLASH_MANAGER_ERROR_FLASH_ERASE;
     }
+
+    return FLASH_MANAGER_OK;
 }

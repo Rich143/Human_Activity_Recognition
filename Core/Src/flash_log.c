@@ -13,6 +13,7 @@
 #include "High_Level/flash_manager.h"
 #include "High_Level/uart.h"
 #include "log_utils.h"
+#include "utils.h"
 
 // 15 4 byte values, plus 4 byte marker = 16 * 4 = 64 bytes
 // This is a multiple of 256, to make it an even multiple of a sector
@@ -272,41 +273,39 @@ flash_log_status_t send_row_over_uart(flash_log_row_t *row) {
 }
 
 #if CONFIG_LOG_USE_TEST_DATA == 0
-flash_log_status_t flash_log_send_over_uart() {
-    uint32_t readAddress = 0;
-    uint32_t num_rows = flash_log_get_num_log_entries();
+handle_row_return_t flash_log_handle_row(uint8_t *row_data, uint32_t
+                                            row_size_bytes, void *user_data)
+{
+    flash_log_status_t status
+        = send_row_over_uart((flash_log_row_t *)row_data);
 
-    for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
-        int32_t status = flash_manager_read(FLASH_REGION_DATA_LOGS,
-                                            readAddress,
-                                            (uint8_t *)&flash_log_buffer,
-                                            sizeof(flash_log_buffer));
-        if (status != 0) {
-            return FLASH_LOG_ERROR;
-        }
+    if (status != FLASH_LOG_OK) {
+        *((flash_log_status_t *)user_data) = status;
 
-        for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
-            flash_log_row_t *row = &flash_log_buffer[j];
-
-            if (row->row_start_marker != FLASH_LOG_ROW_START_MARKER) {
-                // End of log
-                if (i + j < num_rows) {
-                    printf("End of log reached early, corrupted log?. Marker is 0x%lx\n", row->row_start_marker);
-                }
-                return FLASH_LOG_OK;
-            }
-
-            flash_log_status_t status = send_row_over_uart(row);
-            if (status != FLASH_LOG_OK) {
-                return status;
-            }
-
-        }
-
-        readAddress += sizeof(flash_log_buffer);
+        return HANDLE_ROW_STOP;
     }
 
-    return FLASH_LOG_OK;
+    return HANDLE_ROW_CONTINUE;
+}
+
+flash_log_status_t flash_log_send_over_uart() {
+    flash_log_status_t send_status = FLASH_LOG_OK;
+
+    log_utils_status_t status = log_utils_iterate_logs(
+        flash_manager_get_region(FLASH_REGION_DATA_LOGS),
+        FLASH_LOG_ROW_SIZE,
+        (uint8_t *)flash_log_buffer,
+        FLASH_LOG_BUFFER_NUM_ROWS,
+        flash_log_num_rows,
+        flash_log_handle_row,
+        &send_status
+    );
+
+    if (status != LOG_UTILS_OK) {
+        return log_utils_status_to_flash_log_status(status);
+    }
+
+    return send_status;
 }
 
 #else
@@ -325,10 +324,6 @@ flash_log_status_t flash_log_send_over_uart() {
 }
 
 #endif
-
-uint32_t ceil_div(uint32_t a, uint32_t b) {
-    return (a + b - 1) / b;
-}
 
 flash_log_status_t flash_log_clear_logs() {
     if (flash_log_num_rows == 0) {

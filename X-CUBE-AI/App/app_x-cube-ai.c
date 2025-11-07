@@ -248,7 +248,7 @@ void print_imu_csv_2(const accel_data_t *unproc,
                 printf("0,");
             }
 
-            printf("0\n", output_class);
+            printf("0\n");
         }
     }
 }
@@ -297,7 +297,7 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[],
     int32_t status = imu_manager_read_window(&input);
     if (status != BSP_ERROR_NONE) {
         printf("Failed to read window from IMU\n");
-        return PREPROCESS_STATUS_ERROR_OTHER;
+        return PREPROCESS_STATUS_ERROR_IMU_READ_ERROR;
     } else {
         /*printf("IMU Window:\n");*/
         /*for (int i = 0; i < IMU_WINDOW_SIZE; i++) {*/
@@ -434,8 +434,6 @@ void MX_X_CUBE_AI_Init(void)
 void MX_X_CUBE_AI_Process(void)
 {
     /* USER CODE BEGIN 6 */
-    int res = -1;
-
     bool model_enabled = config_get_predictions_enabled();
 
     if (network) {
@@ -482,6 +480,7 @@ void MX_X_CUBE_AI_Process(void)
         }
 
         handle_log_and_print(&log_data, model_enabled);
+    }
 
     /* USER CODE END 6 */
 }

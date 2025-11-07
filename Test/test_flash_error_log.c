@@ -10,6 +10,7 @@
 #include "mock_uart.h"
 #include "log_utils.h"
 #include "config.h"
+#include "utils.h"
 
 #include "unity.h"
 
@@ -378,4 +379,50 @@ void test_send_logs_over_uart() {
     TEST_ERROR_LOG_OK(error_log_send_over_uart());
 }
 
-// Recover logs, print logs
+void test_send_logs_over_uart_incomplete_read_buffer() {
+    int num_logs = 8;
+
+    initTestFlash(num_logs + 1);
+
+    for (int i = 0; i < num_logs; i++) {
+        error_code_values_t error_code;
+        error_code_data_t error_data;
+        get_error_code_and_data(&error_code, &error_data);
+
+        fill_error_log_buffer(&gTestExpectedRows[i], i,
+                              error_code,
+                              error_data);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_recover_log_pointer());
+
+    for (int i = 0; i < num_logs; i++) {
+        uart_cli_send_data_ExpectAndReturn((uint8_t *)&gTestExpectedRows[i], sizeof(error_log_row_t), true);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_send_over_uart());
+}
+
+void test_send_logs_over_uart_multiple_pages() {
+    int num_logs = 36;
+
+    initTestFlash(num_logs + 1);
+
+    for (int i = 0; i < num_logs; i++) {
+        error_code_values_t error_code;
+        error_code_data_t error_data;
+        get_error_code_and_data(&error_code, &error_data);
+
+        fill_error_log_buffer(&gTestExpectedRows[i], i,
+                              error_code,
+                              error_data);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_recover_log_pointer());
+
+    for (int i = 0; i < num_logs; i++) {
+        uart_cli_send_data_ExpectAndReturn((uint8_t *)&gTestExpectedRows[i], sizeof(error_log_row_t), true);
+    }
+
+    TEST_ERROR_LOG_OK(error_log_send_over_uart());
+}
