@@ -173,6 +173,18 @@ static const CLI_Command_Definition_t dumpErrorLogsCommandDefinition = {
         .cExpectedNumberOfParameters = 0,
 };
 
+BaseType_t printErrorLogsCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString );
+
+static const CLI_Command_Definition_t printErrorLogsCommandDefinition = {
+        .pcCommand = "printErrorLogs",
+        .pcHelpString =
+                "printErrorLogs: Print error logs (text)\r\n",
+        .pxCommandInterpreter = printErrorLogsCommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
 BaseType_t writeErrorLogCommand(char *pcWriteBuffer,
                            size_t xWriteBufferLen,
                            const char *pcCommandString );
@@ -184,4 +196,27 @@ static const CLI_Command_Definition_t writeErrorLogCommandDefinition = {
         .pxCommandInterpreter = writeErrorLogCommand,
         .cExpectedNumberOfParameters = 1,
 };
+
+BaseType_t errorLogSizeCommand(char *pcWriteBuffer,
+                         size_t xWriteBufferLen,
+                         const char *pcCommandString );
+
+static const CLI_Command_Definition_t errorLogSizeCommandDefinition = {
+        .pcCommand = "errorLogSize",
+        .pcHelpString = "errorLogSize: Print the number of error log entries\r\n",
+        .pxCommandInterpreter = errorLogSizeCommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
+BaseType_t errorLogClearCommand(char *pcWriteBuffer,
+                         size_t xWriteBufferLen,
+                         const char *pcCommandString );
+
+static const CLI_Command_Definition_t errorLogClearCommandDefinition = {
+        .pcCommand = "errorLogClear",
+        .pcHelpString = "errorLogClear: Clear the error log\r\n",
+        .pxCommandInterpreter = errorLogClearCommand,
+        .cExpectedNumberOfParameters = 0,
+};
+
 #endif /* INC_CLI_COMMANDS_H_ */

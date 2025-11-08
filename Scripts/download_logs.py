@@ -19,15 +19,17 @@ import sys
 import csv
 import time
 from dataclasses import dataclass, asdict
-from typing import Optional
+from typing import Optional, ClassVar
 import re
 from abc import ABC, abstractmethod
+import argparse
 
 @dataclass
 class BaseLogRow(ABC):
-    STRUCT_FMT: str
-    FIELD_NAMES: list[str]
-    ROW_SIZE: int
+    STRUCT_FMT: ClassVar[str]
+    FIELD_NAMES: ClassVar[list[str]]
+    CSV_FIELDS: ClassVar[list[str]]
+    ROW_SIZE: ClassVar[int]
 
     @abstractmethod
     def row_summary(self) -> str:
@@ -41,8 +43,11 @@ class BaseLogRow(ABC):
         vals = struct.unpack(cls.STRUCT_FMT, row)
         return cls(**dict(zip(cls.FIELD_NAMES, vals)))
 
-    def as_dict(self) -> dict:
-        """Convert this log row into a dictionary suitable for csv.DictWriter."""
+    def csv_dict(self) -> dict:
+        """
+        Convert this log row into a dictionary suitable for csv.DictWriter.
+        This should be a supersert of CSV_FIELDS
+        """
         return asdict(self)
 
 @dataclass
@@ -54,9 +59,9 @@ class ErrorLogRow(BaseLogRow):
     padding: int
 
     # < means little-endian, packed layout
-    STRUCT_FMT = "<IIHIH"
-    ROW_SIZE = 16
-    FIELD_NAMES = [
+    STRUCT_FMT: ClassVar[str] = "<IIHIH"
+    ROW_SIZE: ClassVar[int] = 16
+    FIELD_NAMES: ClassVar[list[str]] = [
         "row_start_marker",
         "timestamp_ms",
         "error_code",
@@ -64,39 +69,59 @@ class ErrorLogRow(BaseLogRow):
         "padding",
     ]
 
+    CSV_FIELDS: ClassVar[list[str]] = [
+        "timestamp_ms",
+        "error_code",
+        "error_name",
+        "error_data_label",
+        "error_data_value",
+    ]
+
     ERROR_REGISTRY = {
-    0: ("IMU_READ_ERROR", "BSP Error Code"),
-    1: ("IMU_INIT_ERROR", "BSP Error Code"),
-    2: ("PREPROCESS_ERROR", "Preprocess Status"),
-    3: ("AI_RUN_ERROR", "None"),
-    4: ("POSTPROCESS_ERROR", "None"),
-    5: ("FLASH_LOG_INIT_ERROR", "flash_log_status_t"),
-    6: ("FLASH_LOG_WRITE_ERROR", "flash_log_status_t"),
-    7: ("CLI_INIT_ERROR", "cli_status_t"),
-    8: ("CLI_START_ERROR", "cli_status_t"),
-    9: ("CLI_RUN_ERROR", "cli_status_t"),
-    10: ("CLI_FREERTOS_ASSERT_ERROR", "Line Number"),
-    11: ("BLE_INIT_ERROR", "BLE Error Code"),
-    12: ("BLE_NOTIFY_ERROR", "BLE Error Code"),
+        0: {"name": "IMU_READ_ERROR", "label": "BSP Error Code", "type": "int"},
+        1: {"name": "IMU_INIT_ERROR", "label": "BSP Error Code", "type": "int"},
+        2: {"name": "PREPROCESS_ERROR", "label": "Preprocess Status", "type": "uint"},
+        3: {"name": "AI_RUN_ERROR", "label": "None", "type": "uint"},
+        4: {"name": "POSTPROCESS_ERROR", "label": "None", "type": "uint"},
+        5: {"name": "FLASH_LOG_INIT_ERROR", "label": "flash_log_status_t", "type": "uint"},
+        6: {"name": "FLASH_LOG_WRITE_ERROR", "label": "flash_log_status_t", "type": "uint"},
+        7: {"name": "CLI_INIT_ERROR", "label": "cli_status_t", "type": "uint"},
+        8: {"name": "CLI_START_ERROR", "label": "cli_status_t", "type": "uint"},
+        9: {"name": "CLI_RUN_ERROR", "label": "cli_status_t", "type": "uint"},
+        10: {"name": "CLI_FREERTOS_ASSERT_ERROR", "label": "Line Number", "type": "uint"},
+        11: {"name": "BLE_INIT_ERROR", "label": "BLE Error Code", "type": "int"},
+        12: {"name": "BLE_NOTIFY_ERROR", "label": "BLE Error Code", "type": "int"},
     }
 
     @property
     def decoded_error(self):
-        name, label = self.ERROR_REGISTRY.get(self.error_code, ("UNKNOWN", "UNKNOWN"))
-        return {"name": name, "data_label": label, "data_value": self.data}
+        info = self.ERROR_REGISTRY.get(
+            self.error_code,
+            {"name": "UNKNOWN", "label": "UNKNOWN", "type": "uint"},
+        )
+        data_value = self.data
 
-    def as_dict(self):
-        base = super().as_dict()
+        # Interpret signed vs unsigned using struct
+        if info["type"] == "int":
+            data_value = struct.unpack("<i", struct.pack("<I", self.data))[0]  # signed 32-bit
+        else:
+            data_value = struct.unpack("<I", struct.pack("<I", self.data))[0]  # unsigned 32-bit
+
+        return {
+            "error_name": info["name"],
+            "error_data_label": info["label"],
+            "error_data_value": data_value,
+            "error_data_type": info["type"],
+        }
+
+    def csv_dict(self):
+        base = super().csv_dict()
         decoded = self.decoded_error
-        base.update({
-            "error_name": decoded["name"],
-            "error_data_label": decoded["data_label"],
-            "error_data_value": decoded["data_value"],
-        })
+        base.update(decoded)
         return base
 
     def row_summary(self):
-        return f"Error: {self.decoded_error['name']} ({self.decoded_error['data_label']}={self.decoded_error['data_value']})"
+        return f"Error: {self.decoded_error['error_name']} ({self.decoded_error['error_data_label']}={self.decoded_error['error_data_value']})"
 
 @dataclass
 class DataLogRow(BaseLogRow):
@@ -108,11 +133,19 @@ class DataLogRow(BaseLogRow):
     output_class: int
     contains_output: int
 
-    STRUCT_FMT = '<I13fII'
-    ROW_SIZE = 64
-
-    FIELD_NAMES = [
+    STRUCT_FMT: ClassVar[str] = '<I13fII'
+    ROW_SIZE: ClassVar[int] = 64
+    FIELD_NAMES: ClassVar[list[str]] = [
         'row_start_marker',
+        'unproc_x', 'unproc_y', 'unproc_z',
+        'lowpass_filtered_x', 'lowpass_filtered_y', 'lowpass_filtered_z',
+        'proc_x', 'proc_y', 'proc_z',
+        'model_output_0', 'model_output_1', 'model_output_2', 'model_output_3',
+        'output_class',
+        'contains_output',
+    ]
+
+    CSV_FIELDS: ClassVar[list[str]] = [
         'unproc_x', 'unproc_y', 'unproc_z',
         'lowpass_filtered_x', 'lowpass_filtered_y', 'lowpass_filtered_z',
         'proc_x', 'proc_y', 'proc_z',
@@ -126,51 +159,41 @@ class DataLogRow(BaseLogRow):
 
 class BaseLog(ABC):
     log_row_type: type[BaseLogRow]
+    LOG_SIZE_COMMAND: str
+    LOG_DUMP_COMMAND: str
 
-    @abstractmethod
-    def log_size_cmd(self) -> str:
-        pass
+    LOG_NUM_ROWS_RE = re.compile(r'Num\s*Rows:\s*(\d+) rows.',
+                                 re.IGNORECASE)
 
-    # TODO: This should have some sort of end marker (so we know we've got the whole response before doing re search)
-    @abstractmethod
     def log_size_re(self) -> re.Pattern:
-        pass
+        return self.LOG_NUM_ROWS_RE
+
+    def log_size_cmd(self) -> str:
+        return self.LOG_SIZE_COMMAND
+
+    def log_dump_cmd(self) -> str:
+        return self.LOG_DUMP_COMMAND
 
 class DataLogs(BaseLog):
     LOG_SIZE_COMMAND = 'logSize\n'
-    LOG_NUM_ROWS_RE = re.compile(rb'Num\s*Rows:\s*(\d+)',
-                                 re.IGNORECASE)
+    LOG_DUMP_COMMAND = 'logDump\n'
 
     log_row_type = DataLogRow
 
-    def log_size_cmd(self) -> str:
-        return self.LOG_SIZE_COMMAND
-
-    def log_size_re(self) -> re.Pattern:
-        return self.LOG_NUM_ROWS_RE
-
 class ErrorLogs(BaseLog):
     LOG_SIZE_COMMAND = 'errorLogSize\n'
-    LOG_NUM_ROWS_RE = re.compile(rb'Num\s*Rows:\s*(\d+)',
-                                 re.IGNORECASE)
+    LOG_DUMP_COMMAND = 'dumpErrorLogs\n'
+
 
     log_row_type = ErrorLogRow
 
-    def log_size_cmd(self) -> str:
-        return self.LOG_SIZE_COMMAND
 
-    def log_size_re(self) -> re.Pattern:
-        return self.LOG_NUM_ROWS_RE
-
-class CLI:
+class LogDownloader:
     # ---------- Struct and constants ----------
     CLI_PROMPT =  'CLI > '
     CLI_ENABLE_CODE = 'aaaaaaaaaa'
 
     CLI_PING_COMMAND = 'ping\n'
-    # CLI_LOG_SIZE_COMMAND = 'logSize\n'
-
-    # LOG_NUM_ROWS_RE = re.compile(rb'Num\s*Rows:\s*(\d+)', re.IGNORECASE)
 
     ROW_MARKER = 0xBEEDFACE
     ROW_MARKER_LE = struct.pack('<I', ROW_MARKER)
@@ -179,11 +202,16 @@ class CLI:
 
     def __init__(self, ser: serial.Serial, log: BaseLog,
                  csv_path: Optional[str] = None,
-                 max_rows: Optional[int] = None):
+                 max_rows: Optional[int] = None,
+                 verbose: bool = False):
         self.ser = ser
         self.log = log
         self.csv_path = csv_path
         self.max_rows = max_rows
+        self.verbose = verbose
+
+        self.last_sync_status_print = 0
+        self.last_row_received_time = time.time()
 
     def open_csv(self):
         if self.csv_path is None:
@@ -192,9 +220,10 @@ class CLI:
         csv_file = open(self.csv_path, 'w',
                         newline='')
 
-        low_row_type = self.log.log_row_type
+        log_row_type = self.log.log_row_type
 
-        writer = csv.DictWriter(csv_file, fieldnames=low_row_type.FIELD_NAMES[1:])
+        writer = csv.DictWriter(csv_file, fieldnames=log_row_type.CSV_FIELDS,
+                                extrasaction='ignore')
         writer.writeheader()
         print(f"[*] CSV logging to: {self.csv_path}")
 
@@ -217,9 +246,14 @@ class CLI:
             sys.stdout.flush()
 
     def send_cli_command(self, command: str):
+        self.verbose_print("[*] Sending CLI command: ", command)
         self.ser.write(command.encode('ascii'))
         self.ser.flush()
         time.sleep(0.1)
+
+    def verbose_print(self, *args, **kwargs):
+        if self.verbose:
+            print(*args, **kwargs)
 
     def enable_cli_check_for_enabled(self) -> bool:
         self.send_cli_command(self.CLI_ENABLE_CODE)
@@ -234,12 +268,18 @@ class CLI:
         rx = ""
         while time.time() - start < 10:
             rx += self.ser.read(5000).decode('ascii', errors='ignore')
+
             if "pong" in rx and self.CLI_PROMPT in rx:
+                self.verbose_print("[*] CLI rx:", rx)
+
                 self.ser.reset_input_buffer()
                 return True
 
         # Failed to enable CLI
         self.ser.reset_input_buffer()
+
+        self.verbose_print("[*] CLI failed to enable. CLI rx:", rx)
+
         return False
 
     def query_log_size(self, timeout: float=2.0) -> int:
@@ -250,20 +290,21 @@ class CLI:
 
         self.send_cli_command(self.log.log_size_cmd())
 
-        buf = bytearray()
+        rx = ""
         deadline = time.time() + timeout
         while time.time() < deadline:
-            chunk = self.ser.read(64)
-            if chunk:
-                buf.extend(chunk)
-                m = self.log.log_size_re().search(buf)
-                if m:
-                    rows = int(m.group(1))
-                    self.ser.reset_input_buffer()
-                    return rows
+            rx += self.ser.read(64).decode('ascii', errors='ignore')
+
+            m = self.log.log_size_re().search(rx)
+            if m:
+                rows = int(m.group(1))
+                self.ser.reset_input_buffer()
+
+                self.verbose_print("[*] Received logSize response:", rx)
+                return rows
         # If we got here, we didn’t see the line in time—print whatever we saw for debugging.
         try:
-            print("[!] logSize response (partial):", buf.decode('ascii', errors='ignore'))
+            print("[!] logSize response (partial):", rx)
         except Exception:
             pass
         raise TimeoutError("Timed out waiting for 'Num Rows:' from device")
@@ -299,7 +340,26 @@ class CLI:
         del buf[:row_size]
 
         row = row_type.from_bytes(row_bytes)
+
+        self.last_row_received_time = time.time()
+
         return row, buf
+
+    def print_sync_status(self, buf):
+        now = time.time()
+
+        if (now - self.last_sync_status_print) > 0.5:
+            print(f"[.] still waiting for marker… buffer has {len(buf)} bytes")
+            self.last_sync_status_print = now
+
+    def download_timeout(self) -> bool:
+        now = time.time()
+        if now - self.last_row_received_time > self.LOG_RECEIVE_TIMEOUT_SECONDS:
+            print("[!] Timeout. Stopping.")
+            return True
+
+        return False
+
 
     # ---------- Stream parsing ----------
     def download_logs(self):
@@ -320,7 +380,7 @@ class CLI:
         print(f"[*] Device reports {num_rows} rows.")
 
         # # --- Kick off dump ---
-        cmd = 'logDump\n'
+        cmd = self.log.log_dump_cmd()
         self.send_cli_command(cmd)
 
         print("[*] Waiting for first row marker 0x%08X ..." % self.ROW_MARKER)
@@ -329,23 +389,19 @@ class CLI:
         writer, csv_file = self.open_csv()
         synced = False  # becomes True after we lock onto the first marker
         rows = 0
-        last_status_print = 0.0
-        last_row_received_time = time.time()
+
+        self.last_row_received_time = time.time()
 
         try:
             while True:
                 self.read_chunk_into_buf(buf)
 
                 # Status ping while waiting
-                now = time.time()
-                if not synced and (now - last_status_print) > 0.5:
-                    print(f"[.] still waiting for marker… buffer has {len(buf)} bytes")
-                    last_status_print = now
+                if not synced:
+                    self.print_sync_status(buf)
 
-                if now - last_row_received_time > self.LOG_RECEIVE_TIMEOUT_SECONDS:
-                    print("[!] Timeout. Stopping.")
+                if self.download_timeout():
                     break
-
 
                 # Try to find the next marker
                 start = buf.find(self.ROW_MARKER_LE)
@@ -369,13 +425,11 @@ class CLI:
                 # Use the row
                 if writer:
                     # TODO: Add timestamp
-                    d = row.as_dict()
+                    d = row.csv_dict()
                     d.pop('row_start_marker', None)
                     writer.writerow(d)
 
                 rows += 1
-
-                last_row_received_time = time.time()
 
                 if rows <= 10 or (rows % 100) == 0:
                     msg = f"[#] Row {rows} / {num_rows}: "
@@ -399,18 +453,66 @@ def open_serial_port(port: str, baud: int = 921600):
 
 # ---------- CLI ----------
 if __name__ == "__main__":
-    # Examples:
-    #   python decode_flash_rows.py /dev/tty.usbmodemXXXX 921600 out.csv
-    #   python decode_flash_rows.py /dev/tty.usbserial-0001 2000000
-    if len(sys.argv) < 2:
-        print("Usage: python decode_flash_rows.py <serial_port> [baud=921600] [csv_out]")
-        sys.exit(1)
-    port = sys.argv[1]
-    baud = int(sys.argv[2]) if len(sys.argv) >= 3 else 921600
-    csv_out = sys.argv[3] if len(sys.argv) >= 4 else None
+    parser = argparse.ArgumentParser(
+        description="Decode flash rows from a serial port."
+    )
+
+    # Named arguments with short and long flags
+    parser.add_argument(
+        "-p", "--port",
+        required=True,
+        help="Serial port device (e.g., /dev/tty.usbmodemXXXX)"
+    )
+    parser.add_argument(
+        "-b", "--baud",
+        type=int,
+        default=921600,
+        help="Baud rate (default: 921600)"
+    )
+    parser.add_argument(
+        "-c", "--csv",
+        default=None,
+        help="Optional CSV output file"
+    )
+
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Maximum number of rows to download"
+    )
+
+    parser.add_argument(
+        "-t", "--log-type",
+        choices=["data", "error"],
+        default="data",
+        help="Which type of log to decode: 'data' or 'error'"
+    )
+
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose output"
+    )
+
+    args = parser.parse_args()
+
+    # Access arguments
+    port = args.port
+    baud = args.baud
+    csv_out = args.csv
+    max_rows = args.max_rows
+    verbose = args.verbose
 
     ser = open_serial_port(port, baud)
-    log = DataLogs()
 
-    cli = CLI(ser, log, csv_out)
-    cli.download_logs()
+    if args.log_type == "data":
+        log = DataLogs()
+    elif args.log_type == "error":
+        log = ErrorLogs()
+    else:
+        raise ValueError(f"Unknown log type: {args.log_type}")
+
+    downloader = LogDownloader(ser, log,
+                               csv_out, max_rows, verbose)
+    downloader.download_logs()

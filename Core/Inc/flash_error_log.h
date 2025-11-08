@@ -131,6 +131,8 @@ uint32_t error_log_get_num_log_entries(void);
 
 error_log_status_t error_log_send_over_uart();
 
+error_log_status_t error_log_print();
+
 error_log_status_t error_log_clear_logs(void);
 
 #endif /* FLASH_ERROR_LOG_H */

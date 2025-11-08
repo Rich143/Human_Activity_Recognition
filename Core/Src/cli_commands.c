@@ -55,7 +55,7 @@ BaseType_t logSizeCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const cha
 {
     uint32_t num_rows = flash_log_get_num_log_entries();
 
-    snprintf(pcWriteBuffer, xWriteBufferLen, "Num Rows: %ld\n", num_rows);
+    snprintf(pcWriteBuffer, xWriteBufferLen, "Num Rows: %ld rows.\n", num_rows);
     return pdFALSE;
 }
 
@@ -289,6 +289,23 @@ BaseType_t dumpErrorLogsCommand(char *pcWriteBuffer,
     return pdFALSE;
 }
 
+BaseType_t printErrorLogsCommand(char *pcWriteBuffer,
+                           size_t xWriteBufferLen,
+                           const char *pcCommandString )
+{
+    error_log_status_t status = error_log_print();
+    if (status == ERROR_LOG_OK) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Done\n");
+        return pdFALSE;
+    } else {
+        snprintf(pcWriteBuffer, xWriteBufferLen,
+                 "Error printing error logs: %d\n", status);
+        return pdFALSE;
+    }
+
+    return pdFALSE;
+}
+
 BaseType_t writeErrorLogCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const
                              char *pcCommandString)
 {
@@ -312,3 +329,28 @@ BaseType_t writeErrorLogCommand(char *pcWriteBuffer, size_t xWriteBufferLen, con
 
     return pdFALSE;
 }
+
+BaseType_t errorLogSizeCommand(char *pcWriteBuffer,
+                         size_t xWriteBufferLen,
+                         const char *pcCommandString )
+{
+    uint32_t num_rows = error_log_get_num_log_entries();
+
+    snprintf(pcWriteBuffer, xWriteBufferLen, "Num Rows: %ld rows.\n", num_rows);
+    return pdFALSE;
+}
+
+BaseType_t errorLogClearCommand(char *pcWriteBuffer,
+                         size_t xWriteBufferLen,
+                         const char *pcCommandString )
+{
+    error_log_status_t status = error_log_clear_logs();
+    if (status == ERROR_LOG_OK) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Logs cleared\n");
+        return pdFALSE;
+    } else {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Error clearing logs\n");
+        return pdFALSE;
+    }
+}
+

@@ -208,3 +208,45 @@ error_log_status_t error_log_send_over_uart() {
 
     return send_status;
 }
+
+error_log_status_t error_log_print_row(error_log_row_t *row) {
+    printf("Header 0x%X, Error %d, data %d, Timestamp: %d\n", row->header.row_start_marker,
+           row->error_code, row->data, row->timestamp_ms);
+
+    return ERROR_LOG_OK;
+}
+
+handle_row_return_t error_log_handle_row_print(uint8_t *row_data, uint32_t
+                                               row_size_bytes, void *user_data)
+{
+    error_log_status_t status
+        = error_log_print_row((error_log_row_t *)row_data);
+
+    if (status != ERROR_LOG_OK) {
+        *((error_log_status_t *)user_data) = status;
+
+        return HANDLE_ROW_STOP;
+    }
+
+    return HANDLE_ROW_CONTINUE;
+}
+
+error_log_status_t error_log_print() {
+    error_log_status_t send_status = ERROR_LOG_OK;
+
+    log_utils_status_t status = log_utils_iterate_logs(
+        flash_manager_get_region(FLASH_REGION_ERROR_LOGS),
+        ERROR_LOG_ROW_SIZE_BYTES,
+        (uint8_t *)error_log_buffer,
+        ERROR_LOG_BUFFER_SIZE_ROWS,
+        num_entries,
+        error_log_handle_row_print,
+        &send_status
+    );
+
+    if (status != LOG_UTILS_OK) {
+        return log_utils_status_to_error_log_status(status);
+    }
+
+    return send_status;
+}
