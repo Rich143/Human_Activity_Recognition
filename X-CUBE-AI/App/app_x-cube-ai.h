@@ -26,8 +26,20 @@ extern "C" {
 #include "ai_platform.h"
 
 void MX_X_CUBE_AI_Init(void);
-void MX_X_CUBE_AI_Process(void);
 /* USER CODE BEGIN includes */
+typedef enum {
+  AI_STATUS_OK = 0,
+  AI_STATUS_BUFFERING,
+  AI_STATUS_PREPROCESS_ERROR,
+  AI_STATUS_INFERENCE_ERROR,
+  AI_STATUS_POSTPROCESS_ERROR,
+  AI_STATUS_NOT_INITIALIZED_ERROR,
+  AI_STATUS_END_OF_RECORDED_DATA,
+  AI_STATUS_ERROR,
+} ai_status_t;
+
+ai_status_t MX_X_CUBE_AI_Process(void);
+
 /* USER CODE END includes */
 #ifdef __cplusplus
 }

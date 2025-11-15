@@ -76,21 +76,16 @@ int imu_manager_init(void) {
 int imu_manager_read_window(accel_data_t *window)
 {
   static uint32_t read_idx = 0;
-  uint32_t sample_time = 0;
 
   if (read_idx + IMU_WINDOW_SIZE > LOAD_IMU_DATA_FROM_FILE_NUM_SAMPLES) {
     printf("****\nEnd of Recorded Data\n****\n");
-    return BSP_ERROR_COMPONENT_FAILURE;
+    return BSP_ERROR_END_OF_RECORDED_DATA;
   }
 
   for (int i = 0; i < IMU_WINDOW_SIZE; i++) {
-    sample_time = HAL_GetTick();
-
     window->x[i] = LOAD_IMU_DATA_FROM_FILE_X_DATA[read_idx + i];
     window->y[i] = LOAD_IMU_DATA_FROM_FILE_Y_DATA[read_idx + i];
     window->z[i] = LOAD_IMU_DATA_FROM_FILE_Z_DATA[read_idx + i];
-
-    /*HAL_Delay(IMU_SAMPLING_PERIOD_MS - (HAL_GetTick() - sample_time));*/
   }
 
   read_idx += IMU_WINDOW_SIZE;

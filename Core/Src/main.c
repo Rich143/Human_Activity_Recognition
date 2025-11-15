@@ -101,6 +101,34 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void ble_connect(void) {
+  int ble_status = ble_at_client_setup_and_run();
+  if (ble_status != 0) {
+    printf("Failed to init BLE\n");
+    LOG_ERROR(ERROR_BLE_INIT_ERROR,
+              ERROR_DATA_BLE_STATUS, ble_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
+    while(1);
+  }
+}
+
+void ble_notify(uint32_t *last_notify) {
+  /* When connected we need to notify the iOS app to allow us to use the LED
+   * toggle button
+   * This also acts as a heartbeat indicator on the app
+   */
+  if (ble_at_client_device_connected() && HAL_GetTick() - (*last_notify) > 1000) {
+    int8_t status = ble_at_client_notify();
+    if (status != 0) {
+      printf("Failed to notify ble\n");
+      LOG_ERROR(ERROR_BLE_NOTIFY_ERROR,
+                ERROR_DATA_BLE_STATUS, status,
+                ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+    }
+  }
+
+  *last_notify = HAL_GetTick();
+}
 
 /* USER CODE END 0 */
 
@@ -155,8 +183,13 @@ int main(void)
 
   config_init();
 
+  bool error_log_full = false;
+
   error_log_status_t error_log_status = error_log_init();
-  if (error_log_status != ERROR_LOG_OK) {
+  if (error_log_status == ERROR_LOG_FULL) {
+    printf("Error log is full\n");
+    error_log_full = true;
+  } else if (error_log_status != ERROR_LOG_OK) {
     printf("Failed to init error log\n");
     while(1);
   }
@@ -195,33 +228,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  int ble_status = ble_at_client_setup_and_run();
-  if (ble_status != 0) {
-    printf("Failed to init BLE\n");
-    LOG_ERROR(ERROR_BLE_INIT_ERROR,
-              ERROR_DATA_BLE_STATUS, ble_status,
-              ERROR_LOG_HANG_ON_LOG_FAILURE);
-    while(1);
+  if (!error_log_full) {
+    ble_connect();
   }
 
   uint32_t last_notify = 0;
 
+#if LOAD_IMU_DATA_FROM_FILE
+  bool end_of_recorded_data = false;
+#endif
+
   while (1)
   {
-    /* When connected we need to notify the iOS app to allow us to use the LED
-     * toggle button
-     * This also acts as a heartbeat indicator on the app
-     */
-    if (ble_at_client_device_connected() && HAL_GetTick() - last_notify > 1000) {
-      int8_t status = ble_at_client_notify();
-      if (status != 0) {
-        printf("Failed to notify ble\n");
-        LOG_ERROR(ERROR_BLE_NOTIFY_ERROR,
-                  ERROR_DATA_BLE_STATUS, status,
-                  ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
-      }
-
-      last_notify = HAL_GetTick();
+    if (!error_log_full) {
+      ble_notify(&last_notify);
     }
 
     // Check to see if we should start the CLI
@@ -251,9 +271,20 @@ int main(void)
       }
     }
 
+    if (!error_log_full) {
     /* USER CODE END WHILE */
-    MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
+#if LOAD_IMU_DATA_FROM_FILE
+      if (!end_of_recorded_data) {
+        ai_status_t status = MX_X_CUBE_AI_Process();
+        if (status == AI_STATUS_END_OF_RECORDED_DATA) {
+          end_of_recorded_data = true;
+        }
+      }
+#else
+      MX_X_CUBE_AI_Process();
+#endif
+    }
   }
   /* USER CODE END 3 */
 }

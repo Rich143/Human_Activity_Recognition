@@ -12,11 +12,11 @@
 
 
 #define LOAD_IMU_DATA_FROM_FILE             0
-#define LOAD_IMU_DATA_FROM_FILE_NAME        "Recorded_Data/pamap2_cycling_1.h"
-#define LOAD_IMU_DATA_FROM_FILE_NUM_SAMPLES PAMAP2_CYCLING_1_NUM_SAMPLES
-#define LOAD_IMU_DATA_FROM_FILE_X_DATA      pamap2_cycling_1_x
-#define LOAD_IMU_DATA_FROM_FILE_Y_DATA      pamap2_cycling_1_y
-#define LOAD_IMU_DATA_FROM_FILE_Z_DATA      pamap2_cycling_1_z
+#define LOAD_IMU_DATA_FROM_FILE_NAME        "Recorded_Data/walking_oct_21_input.h"
+#define LOAD_IMU_DATA_FROM_FILE_NUM_SAMPLES WALKING_OCT_21_INPUT_LEN
+#define LOAD_IMU_DATA_FROM_FILE_X_DATA      WALKING_OCT_21_input_x
+#define LOAD_IMU_DATA_FROM_FILE_Y_DATA      WALKING_OCT_21_input_y
+#define LOAD_IMU_DATA_FROM_FILE_Z_DATA      WALKING_OCT_21_input_z
 
 #define LOG_PRINT_CSV_INCLUDE_MODEL_OUTPUT 0
 

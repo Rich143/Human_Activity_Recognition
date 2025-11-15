@@ -295,7 +295,9 @@ preprocess_status_t acquire_and_process_data(ai_i8* data[],
     ai_input_data_t *output = get_network_input_buffer(data);
 
     int32_t status = imu_manager_read_window(&input);
-    if (status != BSP_ERROR_NONE) {
+    if (status == BSP_ERROR_END_OF_RECORDED_DATA) {
+        return PREPROCESS_STATUS_END_OF_RECORDED_DATA;
+    } else if (status != BSP_ERROR_NONE) {
         printf("Failed to read window from IMU\n");
         return PREPROCESS_STATUS_ERROR_IMU_READ_ERROR;
     } else {
@@ -431,7 +433,7 @@ void MX_X_CUBE_AI_Init(void)
     /* USER CODE END 5 */
 }
 
-void MX_X_CUBE_AI_Process(void)
+ai_status_t MX_X_CUBE_AI_Process(void)
 {
     /* USER CODE BEGIN 6 */
     bool model_enabled = config_get_predictions_enabled();
@@ -446,12 +448,14 @@ void MX_X_CUBE_AI_Process(void)
         if (status != PREPROCESS_STATUS_OK) {
             if (status == PREPROCESS_STATUS_ERROR_BUFFERING) {
                 // buffering, continue
-                return;
+                return AI_STATUS_BUFFERING;
+            } else if (status == PREPROCESS_STATUS_END_OF_RECORDED_DATA) {
+                return AI_STATUS_END_OF_RECORDED_DATA;
             } else {
                 LOG_ERROR(ERROR_PREPROCESS_ERROR,
                           ERROR_DATA_PREPROCESS_STATUS, status,
                           ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
-                return;
+                return AI_STATUS_PREPROCESS_ERROR;
             }
         }
 
@@ -467,7 +471,7 @@ void MX_X_CUBE_AI_Process(void)
             LOG_ERROR(ERROR_AI_RUN_ERROR,
                       ERROR_DATA_NONE, 0,
                       ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
-            return;
+            return AI_STATUS_INFERENCE_ERROR;
         }
 
 
@@ -476,11 +480,17 @@ void MX_X_CUBE_AI_Process(void)
             LOG_ERROR(ERROR_POSTPROCESS_ERROR,
                       ERROR_DATA_NONE, 0,
                       ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
-            return;
+            return AI_STATUS_POSTPROCESS_ERROR;
         }
 
         handle_log_and_print(&log_data, model_enabled);
+    } else {
+        LOG_ERROR(ERROR_AI_NOT_INITIALIZED, ERROR_DATA_NONE, 0,
+                  ERROR_LOG_HANG_ON_LOG_FAILURE);
+        return AI_STATUS_NOT_INITIALIZED_ERROR;
     }
+
+    return AI_STATUS_OK;
 
     /* USER CODE END 6 */
 }

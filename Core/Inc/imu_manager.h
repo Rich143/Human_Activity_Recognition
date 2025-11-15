@@ -21,6 +21,7 @@
 //! IMU Full Scale (in g), set to 4g which should avoid clipping for all HAR activities
 #define IMU_FULL_SCALE_G 4
 
+#define BSP_ERROR_END_OF_RECORDED_DATA -1000
 
 /**
  * @brief Initializes the IMU manager

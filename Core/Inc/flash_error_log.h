@@ -21,6 +21,7 @@ typedef enum {
     ERROR_IMU_READ_ERROR = 0,
     ERROR_IMU_INIT_ERROR,
 
+    ERROR_AI_NOT_INITIALIZED,
     ERROR_PREPROCESS_ERROR,
     ERROR_AI_RUN_ERROR,
     ERROR_POSTPROCESS_ERROR,
@@ -62,7 +63,8 @@ static const ErrorDef error_registry[] = {
     { .code = ERROR_IMU_INIT_ERROR, .data = ERROR_DATA_BSP_ERROR_CODE,
         .error_name = "IMU_INIT_ERROR", .data_label = "BSP Error Code" },
 
-
+    { .code = ERROR_AI_NOT_INITIALIZED, .data = ERROR_DATA_NONE,
+        .error_name = "AI_NOT_INITIALIZED", .data_label = "None" },
     { .code = ERROR_PREPROCESS_ERROR, .data = ERROR_DATA_PREPROCESS_STATUS,
         .error_name = "PREPROCESS_ERROR", .data_label = "Preprocess Status" },
     { .code = ERROR_AI_RUN_ERROR, .data = ERROR_DATA_NONE,
