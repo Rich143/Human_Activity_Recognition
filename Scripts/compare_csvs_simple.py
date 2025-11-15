@@ -12,6 +12,7 @@ def main():
     ap.add_argument("--atol", type=float, default=1e-6, help="Absolute tolerance (default: 1e-6)")
     ap.add_argument("--rtol", type=float, default=1e-9, help="Relative tolerance (default: 1e-9)")
     ap.add_argument("--report-csv", type=str, default=None, help="Optional path to write mismatch report CSV")
+    ap.add_argument("--cols", nargs="+", default=None, help="Specific column names to compare (space-separated).")
     args = ap.parse_args()
 
     # Read first N rows (assumes headers and they match)
@@ -20,6 +21,16 @@ def main():
 
     # Align by common columns (assume headers are identical, but guard anyway)
     cols = [c for c in df1.columns if c in df2.columns]
+
+    # If user specified columns, restrict to them
+    if args.cols is not None:
+        missing = [c for c in args.cols if c not in cols]
+        if missing:
+            print(f"[ERROR] Requested columns not found in both files: {missing}", file=sys.stderr)
+            return 2
+        cols = args.cols
+        print(f"Using user-specified columns: {', '.join(cols)}")
+
     df1 = df1[cols]
     df2 = df2[cols]
 
