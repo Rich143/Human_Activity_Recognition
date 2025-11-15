@@ -125,9 +125,10 @@ void ble_notify(uint32_t *last_notify) {
                 ERROR_DATA_BLE_STATUS, status,
                 ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
     }
+
+    *last_notify = HAL_GetTick();
   }
 
-  *last_notify = HAL_GetTick();
 }
 
 /* USER CODE END 0 */
