@@ -1,5 +1,5 @@
 /*
- * preprocess.h
+ * nor_flash.h
  *
  *  Created on: June 22, 2025
  *      Author: richardmatthews
@@ -13,6 +13,9 @@
 #define NOR_FLASH_SIZE           (uint32_t)(512*1024*1024/8) /* 512 Mbits => 64MBytes        */
 #define NOR_FLASH_SECTOR_SIZE    (uint32_t)(64 * 1024)       /* 1024 sectors of 64KBytes     */
 #define NOR_FLASH_SUBSECTOR_SIZE (uint32_t)(4  * 1024)       /* 16384 subsectors of 4KBytes  */
+#define NOR_FLASH_NUM_SECTORS    (uint32_t)(NOR_FLASH_SIZE/NOR_FLASH_SECTOR_SIZE)
+
+#define NOR_FLASH_PAGE_SIZE      (uint32_t)256                /* 262144 pages of 256 Bytes   */
 
 typedef struct
 {

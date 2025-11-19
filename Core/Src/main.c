@@ -39,6 +39,7 @@
 #include "stm32u5xx_hal_gpio.h"
 #include "config.h"
 #include "cli.h"
+#include "flash_error_log.h"
 
 /* USER CODE END Includes */
 
@@ -100,6 +101,35 @@ static void MX_CRC_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void ble_connect(void) {
+  int ble_status = ble_at_client_setup_and_run();
+  if (ble_status != 0) {
+    printf("Failed to init BLE\n");
+    LOG_ERROR(ERROR_BLE_INIT_ERROR,
+              ERROR_DATA_BLE_STATUS, ble_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
+    while(1);
+  }
+}
+
+void ble_notify(uint32_t *last_notify) {
+  /* When connected we need to notify the iOS app to allow us to use the LED
+   * toggle button
+   * This also acts as a heartbeat indicator on the app
+   */
+  if (ble_at_client_device_connected() && HAL_GetTick() - (*last_notify) > 1000) {
+    int8_t status = ble_at_client_notify();
+    if (status != 0) {
+      printf("Failed to notify ble\n");
+      LOG_ERROR(ERROR_BLE_NOTIFY_ERROR,
+                ERROR_DATA_BLE_STATUS, status,
+                ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+    }
+
+    *last_notify = HAL_GetTick();
+  }
+
+}
 
 /* USER CODE END 0 */
 
@@ -154,22 +184,42 @@ int main(void)
 
   config_init();
 
+  bool error_log_full = false;
+
+  error_log_status_t error_log_status = error_log_init();
+  if (error_log_status == ERROR_LOG_FULL) {
+    printf("Error log is full\n");
+    error_log_full = true;
+  } else if (error_log_status != ERROR_LOG_OK) {
+    printf("Failed to init error log\n");
+    while(1);
+  }
+
   int32_t status = imu_manager_init();
   if (status != BSP_ERROR_NONE) {
     printf("Failed to init IMU\n");
+    LOG_ERROR(ERROR_IMU_INIT_ERROR,
+              ERROR_DATA_BSP_ERROR_CODE, status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
   flash_log_status_t flash_status =
-    flash_log_init(CONFIG_LOG_MAX_SAVED_ROWS);
+    flash_log_init();
   if (flash_status != FLASH_LOG_OK) {
     printf("Failed to init flash log\n");
+    LOG_ERROR(ERROR_FLASH_LOG_INIT_ERROR,
+              ERROR_DATA_FLASH_LOG_STATUS, flash_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
   cli_status_t cli_status = cli_init();
   if (cli_status != CLI_STATUS_OK) {
     printf("Failed to init CLI\n");
+    LOG_ERROR(ERROR_CLI_INIT_ERROR,
+              ERROR_DATA_CLI_STATUS, cli_status,
+              ERROR_LOG_HANG_ON_LOG_FAILURE);
     while(1);
   }
 
@@ -179,24 +229,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  ble_at_client_setup_and_run();
+  if (!error_log_full) {
+    ble_connect();
+  }
 
   uint32_t last_notify = 0;
 
+#if LOAD_IMU_DATA_FROM_FILE
+  bool end_of_recorded_data = false;
+#endif
+
   while (1)
   {
-    /* When connected we need to notify the iOS app to allow us to use the LED
-     * toggle button
-     * This also acts as a heartbeat indicator on the app
-     */
-    if (ble_at_client_device_connected() && HAL_GetTick() - last_notify > 1000) {
-      int8_t status = ble_at_client_notify();
-      if (status != 0) {
-        printf("Failed to notify ble\n");
-        while (1);
-      }
-
-      last_notify = HAL_GetTick();
+    if (!error_log_full) {
+      ble_notify(&last_notify);
     }
 
     // Check to see if we should start the CLI
@@ -207,7 +253,11 @@ int main(void)
         cli_status = cli_start();
         if (cli_status != CLI_STATUS_OK) {
           printf("Failed to start CLI\n");
-          while(1);
+          LOG_ERROR(ERROR_CLI_START_ERROR,
+                    ERROR_DATA_CLI_STATUS, cli_status,
+                    ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+
+          continue;
         }
 
         config_set_cli_enabled(true);
@@ -216,13 +266,26 @@ int main(void)
       cli_status = cli_run();
       if (cli_status != CLI_STATUS_OK) {
         printf("Failed to run CLI\n");
-        while(1);
+        LOG_ERROR(ERROR_CLI_RUN_ERROR,
+                  ERROR_DATA_CLI_STATUS, cli_status,
+                  ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
       }
     }
 
+    if (!error_log_full) {
     /* USER CODE END WHILE */
-    MX_X_CUBE_AI_Process();
     /* USER CODE BEGIN 3 */
+#if LOAD_IMU_DATA_FROM_FILE
+      if (!end_of_recorded_data) {
+        ai_status_t status = MX_X_CUBE_AI_Process();
+        if (status == AI_STATUS_END_OF_RECORDED_DATA) {
+          end_of_recorded_data = true;
+        }
+      }
+#else
+      MX_X_CUBE_AI_Process();
+#endif
+    }
   }
   /* USER CODE END 3 */
 }

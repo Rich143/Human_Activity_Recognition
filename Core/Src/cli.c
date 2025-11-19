@@ -124,7 +124,11 @@ CLI_Definition_List_Item_t flashClearChipCommandListItem;
 CLI_Definition_List_Item_t flashClearedCommandListItem;
 CLI_Definition_List_Item_t getIMUScaleCommandListItem;
 CLI_Definition_List_Item_t enablePredictionsCommandListItem;
-
+CLI_Definition_List_Item_t dumpErrorLogsCommandListItem;
+CLI_Definition_List_Item_t writeErrorLogCommandListItem;
+CLI_Definition_List_Item_t errorLogSizeCommandListItem;
+CLI_Definition_List_Item_t printErrorLogsCommandListItem;
+CLI_Definition_List_Item_t errorLogClearCommandListItem;
 
 cli_status_t cli_register_commands() {
     BaseType_t status = FreeRTOS_CLIRegisterCommandStatic(&pingCommandDefinition,
@@ -201,6 +205,36 @@ cli_status_t cli_register_commands() {
 
     status = FreeRTOS_CLIRegisterCommandStatic(&enablePredictionsCommandDefinition,
                                       &enablePredictionsCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&dumpErrorLogsCommandDefinition,
+                                      &dumpErrorLogsCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&writeErrorLogCommandDefinition,
+                                      &writeErrorLogCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&errorLogSizeCommandDefinition,
+                                      &errorLogSizeCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&printErrorLogsCommandDefinition,
+                                      &printErrorLogsCommandListItem);
+    if (status != pdPASS) {
+        return CLI_STATUS_ERROR_OTHER;
+    }
+
+    status = FreeRTOS_CLIRegisterCommandStatic(&errorLogClearCommandDefinition,
+                                      &errorLogClearCommandListItem);
     if (status != pdPASS) {
         return CLI_STATUS_ERROR_OTHER;
     }

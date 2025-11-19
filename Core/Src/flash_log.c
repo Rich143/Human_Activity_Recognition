@@ -10,7 +10,10 @@
 #include "ai_output_data_type.h"
 
 #include "High_Level/nor_flash.h"
+#include "High_Level/flash_manager.h"
 #include "High_Level/uart.h"
+#include "log_utils.h"
+#include "utils.h"
 
 // 15 4 byte values, plus 4 byte marker = 16 * 4 = 64 bytes
 // This is a multiple of 256, to make it an even multiple of a sector
@@ -33,19 +36,12 @@ static_assert(sizeof(flash_log_row_t) == FLASH_LOG_ROW_SIZE,
 flash_log_row_t flash_log_buffer[FLASH_LOG_BUFFER_NUM_ROWS];
 uint32_t flash_log_num_buffered_rows;
 uint32_t flash_log_num_rows;
-uint32_t flash_log_max_saved_rows;
 
-flash_log_status_t flash_log_init(uint32_t max_num_saved_samples) {
-    int rc = nor_flash_init();
+flash_log_status_t flash_log_init() {
+    int rc = flash_manager_init();
     if (rc != 0) {
         return FLASH_LOG_ERROR;
     }
-
-    if (max_num_saved_samples > CONFIG_MAX_SAVED_ROWS) {
-        return FLASH_LOG_CONFIG_ERROR;
-    }
-
-    flash_log_max_saved_rows = max_num_saved_samples;
 
     flash_log_status_t status = flash_log_recover_log_pointer();
     if (status != FLASH_LOG_OK) {
@@ -73,22 +69,42 @@ uint32_t get_flash_log_write_address() {
     return flash_log_num_rows * sizeof(flash_log_row_t);
 }
 
+flash_log_status_t flash_manager_status_to_flash_log_status(flash_manager_status_t status)
+{
+    switch (status) {
+        case FLASH_MANAGER_OK:
+            return FLASH_LOG_OK;
+        case FLASH_MANAGER_ERROR_OUT_OF_BOUNDS:
+            return FLASH_LOG_FULL;
+        case FLASH_MANAGER_ERROR_FLASH_WRITE:
+            return FLASH_LOG_FLASH_WRITE_ERROR;
+        case FLASH_MANAGER_ERROR_FLASH_READ:
+            return FLASH_LOG_FLASH_READ_ERROR;
+        case FLASH_MANAGER_ERROR_FLASH_ERASE:
+            return FLASH_LOG_FLASH_ERASE_ERROR;
+        case FLASH_MANAGER_ERROR_INVALID_REGION:
+        case FLASH_MANAGER_ERROR:
+        case FLASH_MANAGER_ERROR_FLASH_INIT:
+            return FLASH_LOG_ERROR;
+        default:
+            return FLASH_LOG_ERROR;
+    }
+}
+
 flash_log_status_t flush_row_buffer() {
     if (flash_log_num_buffered_rows == 0) {
         return FLASH_LOG_OK;
     }
 
-    if (flash_log_num_rows + flash_log_num_buffered_rows > flash_log_max_saved_rows) {
-        return FLASH_LOG_FULL;
-    }
-
     uint32_t writeAddress = get_flash_log_write_address();
 
-    int32_t rc = nor_flash_write(writeAddress,
-                                 (uint8_t *)&flash_log_buffer,
-                                 FLASH_LOG_ROW_SIZE * flash_log_num_buffered_rows);
-    if (rc != 0) {
-        return FLASH_LOG_ERROR;
+    flash_manager_status_t status = flash_manager_write(FLASH_REGION_DATA_LOGS,
+                                     writeAddress,
+                                     (uint8_t *)&flash_log_buffer,
+                                     FLASH_LOG_ROW_SIZE * flash_log_num_buffered_rows);
+
+    if (status != FLASH_MANAGER_OK) {
+        return flash_manager_status_to_flash_log_status(status);
     }
 
     flash_log_num_rows += flash_log_num_buffered_rows;
@@ -152,43 +168,42 @@ flash_log_status_t flash_log_write_window(const accel_data_t *unproc,
     return flush_row_buffer();
 }
 
-flash_log_status_t flash_log_recover_log_pointer() {
-    uint32_t readAddress = 0;
-    bool found_log_pointer = false;
-
-    flash_log_num_rows = 0;
-
-    while (!found_log_pointer && readAddress < FLASH_LOG_SIZE) {
-        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
-        if (status != 0) {
+flash_log_status_t log_utils_status_to_flash_log_status(log_utils_status_t status)
+{
+    switch (status) {
+        case LOG_UTILS_OK:
+            return FLASH_LOG_OK;
+            break;
+        case LOG_UTILS_FLASH_READ_ERROR:
+            return FLASH_LOG_FLASH_READ_ERROR;
+            break;
+        case LOG_UTILS_CORRUPT_LOG:
+            return FLASH_LOG_CORRUPT_LOG;
+            break;
+        case LOG_UTILS_LOG_FULL:
+            return FLASH_LOG_FULL;
+            break;
+        default:
             return FLASH_LOG_ERROR;
-        }
+    }
+}
 
-        for (int i = 0; i < FLASH_LOG_BUFFER_NUM_ROWS; i++) {
-            if (flash_log_buffer[i].row_start_marker != FLASH_LOG_ROW_START_MARKER) {
-                if (flash_log_buffer[i].row_start_marker !=
-                    CLEARED_FLASH(typeof (flash_log_buffer[i].row_start_marker)))
-                {
-                    printf("Corrupted log, marker is 0x%lx\n", flash_log_buffer[i].row_start_marker);
-                    return FLASH_LOG_ERROR;
-                }
-                flash_log_num_rows += i;
-                found_log_pointer = true;
-                break;
-            }
-        }
+flash_log_status_t flash_log_recover_log_pointer() {
+    flash_region_t *region;
 
-        if (!found_log_pointer) {
-            readAddress += sizeof(flash_log_buffer);
-            flash_log_num_rows += FLASH_LOG_BUFFER_NUM_ROWS;
-        }
+    region = flash_manager_get_region(FLASH_REGION_DATA_LOGS);
+    if (region == NULL) {
+        return FLASH_LOG_ERROR;
     }
 
-    if (found_log_pointer) {
-        return FLASH_LOG_OK;
-    } else {
-        return FLASH_LOG_FULL;
-    }
+    log_utils_status_t status =
+        log_utils_recover_log_pointer(region,
+                                      FLASH_LOG_ROW_SIZE,
+                                      &flash_log_num_rows,
+                                      (uint8_t *)flash_log_buffer,
+                                      FLASH_LOG_BUFFER_NUM_ROWS);
+
+    return log_utils_status_to_flash_log_status(status);
 }
 
 uint32_t flash_log_get_num_log_entries() {
@@ -204,7 +219,10 @@ flash_log_status_t flash_log_print_csv() {
     printf("model_output_0,model_output_1,model_output_2,output_class\n");
 
     for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
-        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
+        int32_t status = flash_manager_read(FLASH_REGION_DATA_LOGS,
+                                            readAddress,
+                                            (uint8_t *)&flash_log_buffer,
+                                            sizeof(flash_log_buffer));
         if (status != 0) {
             return FLASH_LOG_ERROR;
         }
@@ -255,38 +273,39 @@ flash_log_status_t send_row_over_uart(flash_log_row_t *row) {
 }
 
 #if CONFIG_LOG_USE_TEST_DATA == 0
-flash_log_status_t flash_log_send_over_uart() {
-    uint32_t readAddress = 0;
-    uint32_t num_rows = flash_log_get_num_log_entries();
+handle_row_return_t flash_log_handle_row(uint8_t *row_data, uint32_t
+                                            row_size_bytes, void *user_data)
+{
+    flash_log_status_t status
+        = send_row_over_uart((flash_log_row_t *)row_data);
 
-    for (uint32_t i = 0; i < num_rows; i += FLASH_LOG_BUFFER_NUM_ROWS) {
-        int32_t status = nor_flash_read(readAddress, (uint8_t *)&flash_log_buffer, sizeof(flash_log_buffer));
-        if (status != 0) {
-            return FLASH_LOG_ERROR;
-        }
+    if (status != FLASH_LOG_OK) {
+        *((flash_log_status_t *)user_data) = status;
 
-        for (uint32_t j = 0; j < FLASH_LOG_BUFFER_NUM_ROWS; ++j) {
-            flash_log_row_t *row = &flash_log_buffer[j];
-
-            if (row->row_start_marker != FLASH_LOG_ROW_START_MARKER) {
-                // End of log
-                if (i + j < num_rows) {
-                    printf("End of log reached early, corrupted log?. Marker is 0x%lx\n", row->row_start_marker);
-                }
-                return FLASH_LOG_OK;
-            }
-
-            flash_log_status_t status = send_row_over_uart(row);
-            if (status != FLASH_LOG_OK) {
-                return status;
-            }
-
-        }
-
-        readAddress += sizeof(flash_log_buffer);
+        return HANDLE_ROW_STOP;
     }
 
-    return FLASH_LOG_OK;
+    return HANDLE_ROW_CONTINUE;
+}
+
+flash_log_status_t flash_log_send_over_uart() {
+    flash_log_status_t send_status = FLASH_LOG_OK;
+
+    log_utils_status_t status = log_utils_iterate_logs(
+        flash_manager_get_region(FLASH_REGION_DATA_LOGS),
+        FLASH_LOG_ROW_SIZE,
+        (uint8_t *)flash_log_buffer,
+        FLASH_LOG_BUFFER_NUM_ROWS,
+        flash_log_num_rows,
+        flash_log_handle_row,
+        &send_status
+    );
+
+    if (status != LOG_UTILS_OK) {
+        return log_utils_status_to_flash_log_status(status);
+    }
+
+    return send_status;
 }
 
 #else
@@ -306,25 +325,19 @@ flash_log_status_t flash_log_send_over_uart() {
 
 #endif
 
-uint32_t ceil_div(uint32_t a, uint32_t b) {
-    return (a + b - 1) / b;
-}
-
 flash_log_status_t flash_log_clear_logs() {
     if (flash_log_num_rows == 0) {
         return FLASH_LOG_OK;
     }
 
-    uint32_t numSectors = ceil_div(flash_log_num_rows * FLASH_LOG_ROW_SIZE, NOR_FLASH_SECTOR_SIZE);
+    uint32_t numSectors = ceil_div(flash_log_num_rows * FLASH_LOG_ROW_SIZE,
+                                   NOR_FLASH_SECTOR_SIZE);
 
-    uint32_t eraseAddress = 0;
     for (uint32_t i = 0; i < numSectors; i++) {
-        int32_t status = nor_flash_erase_sector(eraseAddress);
+        int32_t status = flash_manager_erase_sector(FLASH_REGION_DATA_LOGS, i);
         if (status != 0) {
             return FLASH_LOG_ERROR;
         }
-
-        eraseAddress += NOR_FLASH_SECTOR_SIZE;
     }
 
     flash_log_num_rows = 0;

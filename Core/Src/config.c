@@ -8,15 +8,16 @@
 #include "config.h"
 #include <stdbool.h>
 
-bool logging_enabled = false;
-bool print_csv_enabled = false;
-bool cli_enabled = false;
-bool predictions_enabled = CONFIG_PREDICTIONS_ENBLED_DEFAULT;
+bool logging_enabled;
+bool print_csv_enabled;
+bool cli_enabled;
+bool predictions_enabled;
 
 void config_init() {
-  logging_enabled = false;
+  logging_enabled = CONFIG_LOGGING_ENABLED_DEFAULT;
   print_csv_enabled = false;
   cli_enabled = false;
+  predictions_enabled = CONFIG_PREDICTIONS_ENBLED_DEFAULT;
 }
 
 void config_set_logging_enabled(bool enabled) {

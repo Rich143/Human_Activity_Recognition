@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "flash_error_log.h"
+
 #include "cmsis_gcc.h"
 
 typedef int32_t BaseType_t;
@@ -22,7 +24,9 @@ typedef uint32_t UBaseType_t;
         if (!(expr)) { \
             printf("Assertion failed: %s, file %s, line %d\n", \
                     #expr, __FILE__, __LINE__); \
-            while(1); \
+            LOG_ERROR(ERROR_CLI_FREERTOS_ASSERT_ERROR, ERROR_DATA_LINE_NUMBER, \
+                      __LINE__, ERROR_LOG_HANG_ON_LOG_FAILURE); \
+            while (1); \
         } \
     } while (0)
 
