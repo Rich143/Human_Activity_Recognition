@@ -251,6 +251,8 @@ int main(void)
                   ERROR_DATA_NONE,
                   0,
                   ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+
+        ble_at_client_clear_disconnect();
       }
     }
 

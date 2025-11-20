@@ -39,6 +39,7 @@ int8_t ble_at_client_set_service(uint8_t svc_index);
 
 bool ble_at_client_device_connected();
 bool ble_at_client_check_disconnect();
+void ble_at_client_clear_disconnect();
 
 #ifdef __cplusplus
 }

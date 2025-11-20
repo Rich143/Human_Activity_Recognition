@@ -22,8 +22,8 @@
 /* Private variables ---------------------------------------------------------*/
 uint8_t at_buffer[64];
 uint8_t global_svc_index = 0;
-bool global_device_connected = false; // A Device is connected
-bool global_device_has_connected = false; // A device has connected at least once
+volatile bool global_device_connected = false; // A Device is connected
+volatile bool global_device_has_connected = false; // A device has connected at least once
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -207,6 +207,16 @@ int ble_at_client_setup_and_run() {
 
   HAL_Delay(100);
 
+  stm32wb_at_BLE_RF_POWER_t param_PWR = { .tx_power = 3, .tx_power_code = 3 };
+  status = stm32wb_at_client_Set(BLE_RF_POWER, &param_PWR);
+  if (status != 0)
+  {
+    printf("Failed to set TX Power\n");
+    return -4;
+  }
+
+  HAL_Delay(100);
+
   /* Send a BLE AT command to start the BLE P2P server application */
   printf("Starting the BLE P2P server application\n");
   stm32wb_at_BLE_SVC_t param_BLE_SVC;
@@ -216,7 +226,7 @@ int ble_at_client_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to start the BLE P2P server application\n");
-    return -4;
+    return -5;
   }
 
   HAL_Delay(100);
@@ -226,7 +236,7 @@ int ble_at_client_setup_and_run() {
   if (status != 0)
   {
     printf("Failed to query BLE service\n");
-    return -5;
+    return -6;
   }
 
   HAL_Delay(100);
@@ -242,7 +252,7 @@ int ble_at_client_setup_and_run() {
     printf("BLE P2P server application is running\n");
   } else {
     printf("Failed to start the BLE P2P server application\n");
-    return -6;
+    return -7;
   }
 
   return 0;
@@ -255,19 +265,22 @@ bool ble_at_client_device_connected() {
 /**
  * @brief Check if the device has disconnected after having connected
  *
- * Returns true if the device has disconnected, after which it clears the flag.
- * It will return true again only after a device has connected again.
- *
  * @return true if the device has disconnected
  */
 bool ble_at_client_check_disconnect() {
   if (global_device_has_connected) {
     if (!global_device_connected) {
-      global_device_has_connected = false;
-
       return true;
     }
   }
 
   return false;
+}
+
+/**
+ * @brief Clear the disconnect flag, so disconnect check will only return true
+ * once a client connects again
+ */
+void ble_at_client_clear_disconnect() {
+  global_device_has_connected = false;
 }
