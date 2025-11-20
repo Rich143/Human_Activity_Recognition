@@ -92,6 +92,7 @@ class ErrorLogRow(BaseLogRow):
         11: {"name": "CLI_FREERTOS_ASSERT_ERROR", "label": "Line Number", "type": "uint"},
         12: {"name": "BLE_INIT_ERROR", "label": "BLE Error Code", "type": "int"},
         13: {"name": "BLE_NOTIFY_ERROR", "label": "BLE Error Code", "type": "int"},
+        14: {"name": "BLE_DISCONNECT_ERROR", "label": "None", "type": "uint"},
     }
 
     @property

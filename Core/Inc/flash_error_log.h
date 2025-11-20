@@ -36,6 +36,7 @@ typedef enum {
 
     ERROR_BLE_INIT_ERROR,
     ERROR_BLE_NOTIFY_ERROR,
+    ERROR_BLE_DISCONNECT_ERROR,
 
     ERROR_CODE_VALUES_COUNT,
 } error_code_values_t;
@@ -92,6 +93,8 @@ static const ErrorDef error_registry[] = {
         .error_name = "BLE_INIT_ERROR", .data_label = "BLE Error Code" },
     { .code = ERROR_BLE_NOTIFY_ERROR, .data = ERROR_DATA_BLE_STATUS,
         .error_name = "BLE_NOTIFY_ERROR", .data_label = "BLE Error Code" },
+    { .code = ERROR_BLE_DISCONNECT_ERROR, .data = ERROR_DATA_NONE,
+        .error_name = "BLE_DISCONNECT_ERROR", .data_label = "None" },
 };
 
 static_assert(ARRAY_LEN(error_registry) == ERROR_CODE_VALUES_COUNT,

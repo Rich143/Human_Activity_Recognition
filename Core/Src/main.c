@@ -243,6 +243,15 @@ int main(void)
   {
     if (!error_log_full) {
       ble_notify(&last_notify);
+
+      bool ble_disconnect = ble_at_client_check_disconnect();
+      if (ble_disconnect) {
+        printf("BLE disconnected\n");
+        LOG_ERROR(ERROR_BLE_DISCONNECT_ERROR,
+                  ERROR_DATA_NONE,
+                  0,
+                  ERROR_LOG_CONTINUE_ON_LOG_FAILURE);
+      }
     }
 
     // Check to see if we should start the CLI

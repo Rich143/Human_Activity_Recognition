@@ -210,7 +210,7 @@ error_log_status_t error_log_send_over_uart() {
 }
 
 error_log_status_t error_log_print_row(error_log_row_t *row) {
-    printf("Header 0x%X, Error %d, data %d, Timestamp: %d\n", row->header.row_start_marker,
+    printf("Header 0x%lX, Error %d, data %ld, Timestamp: %ld\n", row->header.row_start_marker,
            row->error_code, row->data, row->timestamp_ms);
 
     return ERROR_LOG_OK;

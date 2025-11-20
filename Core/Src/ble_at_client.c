@@ -22,7 +22,8 @@
 /* Private variables ---------------------------------------------------------*/
 uint8_t at_buffer[64];
 uint8_t global_svc_index = 0;
-bool global_device_connected = false;
+bool global_device_connected = false; // A Device is connected
+bool global_device_has_connected = false; // A device has connected at least once
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -103,6 +104,7 @@ uint8_t stm32wb_at_BLE_EVT_CONN_cb(stm32wb_at_BLE_EVT_CONN_t *param)
   {
     printf("A remote device is  now connected\n");
     global_device_connected = true;
+    global_device_has_connected = true;
   }
   else
   {
@@ -158,6 +160,7 @@ void uart_ble_at_client_rx_cb(uint8_t data) {
 
 void ble_at_client_init() {
   global_device_connected = false;
+  global_device_has_connected = false;
   global_svc_index = 0;
 
   uart_ble_rx_register_callback(uart_ble_at_client_rx_cb);
@@ -247,4 +250,24 @@ int ble_at_client_setup_and_run() {
 
 bool ble_at_client_device_connected() {
   return global_device_connected;
+}
+
+/**
+ * @brief Check if the device has disconnected after having connected
+ *
+ * Returns true if the device has disconnected, after which it clears the flag.
+ * It will return true again only after a device has connected again.
+ *
+ * @return true if the device has disconnected
+ */
+bool ble_at_client_check_disconnect() {
+  if (global_device_has_connected) {
+    if (!global_device_connected) {
+      global_device_has_connected = false;
+
+      return true;
+    }
+  }
+
+  return false;
 }
